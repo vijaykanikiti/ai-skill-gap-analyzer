@@ -1,0 +1,711 @@
+.progress-page {
+  width: 100%;
+}
+
+
+/* HEADER */
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.progress-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.progress-title svg {
+  color: var(--primary-color);
+}
+
+.progress-title h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.progress-header p {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.progress-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 8px 12px;
+
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+
+  background: var(--bg-card);
+  color: var(--text-secondary);
+
+  font-size: 10px;
+}
+
+
+/* STATS */
+
+.progress-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 13px;
+
+  margin-bottom: 18px;
+}
+
+.progress-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  padding: 16px;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+}
+
+.progress-stat-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+}
+
+.progress-stat-icon.purple {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color);
+}
+
+.progress-stat-icon.green {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--success-color);
+}
+
+.progress-stat-icon.blue {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.progress-stat-icon.orange {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-color);
+}
+
+.progress-stat-card > div:last-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-stat-card span {
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.progress-stat-card strong {
+  margin-top: 2px;
+  font-size: 18px;
+}
+
+.progress-stat-card small {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+
+  margin-top: 2px;
+
+  color: var(--success-color);
+  font-size: 8px;
+}
+
+
+/* MAIN GRID */
+
+.progress-main-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14px;
+
+  margin-bottom: 14px;
+}
+
+.progress-panel,
+.roadmap-progress-panel {
+  padding: 18px;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 13px;
+}
+
+.progress-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.progress-panel-header h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.progress-panel-header p {
+  margin: 4px 0 0;
+
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.progress-panel-header > button {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  border: none;
+  background: transparent;
+
+  color: var(--primary-color);
+
+  font-size: 9px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+/* SKILLS */
+
+.skill-progress-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px 22px;
+
+  margin-top: 20px;
+}
+
+.skill-progress-top {
+  display: flex;
+  justify-content: space-between;
+
+  margin-bottom: 6px;
+}
+
+.skill-progress-top > span {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.skill-progress-top > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.skill-progress-top small {
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+.skill-progress-top strong {
+  color: var(--primary-color);
+  font-size: 9px;
+}
+
+.skill-progress-track {
+  height: 6px;
+
+  background: var(--border-color);
+  border-radius: 10px;
+
+  overflow: hidden;
+}
+
+.skill-progress-fill {
+  height: 100%;
+
+  border-radius: 10px;
+
+  background: var(--primary-color);
+}
+
+
+/* ACTIVITY */
+
+.activity-panel > .progress-panel-header > svg {
+  color: var(--primary-color);
+}
+
+.activity-chart {
+  height: 175px;
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 10px;
+
+  margin-top: 15px;
+}
+
+.activity-column {
+  height: 100%;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+
+  flex: 1;
+}
+
+.activity-column > span {
+  margin-bottom: 5px;
+
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+.activity-bar-container {
+  width: 100%;
+  max-width: 27px;
+  height: 125px;
+
+  display: flex;
+  align-items: flex-end;
+
+  background: var(--bg-primary);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.activity-bar {
+  width: 100%;
+
+  border-radius: 6px 6px 0 0;
+
+  background: var(--primary-color);
+}
+
+.activity-column small {
+  margin-top: 6px;
+
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+.activity-summary {
+  display: flex;
+  gap: 25px;
+
+  margin-top: 12px;
+  padding-top: 12px;
+
+  border-top: 1px solid var(--border-color);
+}
+
+.activity-summary div {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-summary strong {
+  font-size: 14px;
+}
+
+.activity-summary span {
+  margin-top: 2px;
+
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+
+/* ROADMAP */
+
+.roadmap-progress-panel {
+  margin-bottom: 14px;
+}
+
+.roadmap-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+
+  margin-top: 18px;
+}
+
+.roadmap-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 11px;
+
+  border-radius: 9px;
+
+  background: var(--bg-primary);
+}
+
+.roadmap-progress-circle {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  border: 3px solid var(--primary-color);
+
+  color: var(--primary-color);
+}
+
+.roadmap-progress-circle.warning {
+  border-color: var(--warning-color);
+  color: var(--warning-color);
+}
+
+.roadmap-progress-circle.neutral {
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+.roadmap-progress-circle strong {
+  font-size: 8px;
+}
+
+.roadmap-progress-item h4 {
+  margin: 0;
+
+  font-size: 10px;
+}
+
+.roadmap-progress-item span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: var(--text-secondary);
+  font-size: 8px;
+}
+
+
+/* AI */
+
+.progress-ai-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+
+  padding: 18px;
+
+  margin-bottom: 20px;
+
+  border-radius: 13px;
+
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px solid rgba(99, 102, 241, 0.16);
+}
+
+.progress-ai-icon {
+  width: 44px;
+  height: 44px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: var(--primary-color);
+  color: white;
+}
+
+.progress-ai-content {
+  flex: 1;
+}
+
+.progress-ai-content > span {
+  color: var(--primary-color);
+
+  font-size: 8px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+}
+
+.progress-ai-content h3 {
+  margin: 4px 0;
+
+  font-size: 14px;
+}
+
+.progress-ai-content p {
+  margin: 0;
+
+  color: var(--text-secondary);
+
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.progress-ai-card > button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 9px 12px;
+
+  flex-shrink: 0;
+
+  border: none;
+  border-radius: 7px;
+
+  background: var(--primary-color);
+  color: white;
+
+  font-size: 9px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+/* ACHIEVEMENTS */
+
+.achievements-section {
+  margin-bottom: 20px;
+}
+
+.progress-section-title {
+  margin-bottom: 13px;
+}
+
+.progress-section-title h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.progress-section-title p {
+  margin: 4px 0 0;
+
+  color: var(--text-secondary);
+  font-size: 9px;
+}
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.achievement-card {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 14px;
+
+  border-radius: 11px;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+}
+
+.achievement-card.locked {
+  opacity: 0.55;
+}
+
+.achievement-icon {
+  width: 38px;
+  height: 38px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--warning-color);
+}
+
+.achievement-card h4 {
+  margin: 0;
+  font-size: 10px;
+}
+
+.achievement-card p {
+  margin: 3px 0 0;
+
+  color: var(--text-secondary);
+  font-size: 8px;
+  line-height: 1.4;
+}
+
+.achievement-check {
+  position: absolute;
+
+  top: 8px;
+  right: 8px;
+
+  color: var(--success-color);
+}
+
+
+/* BOTTOM */
+
+.progress-bottom-actions {
+  display: flex;
+  justify-content: space-between;
+
+  padding-bottom: 25px;
+}
+
+.progress-secondary-btn,
+.progress-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 10px 14px;
+
+  border-radius: 8px;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.progress-secondary-btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-primary);
+}
+
+.progress-primary-btn {
+  border: none;
+  background: var(--primary-color);
+  color: white;
+}
+
+
+/* RESPONSIVE */
+
+@media (max-width: 1100px) {
+
+  .progress-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .roadmap-progress-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .achievements-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+
+@media (max-width: 800px) {
+
+  .progress-main-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .skill-progress-list {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+
+@media (max-width: 600px) {
+
+  .progress-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .progress-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .roadmap-progress-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .achievements-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .progress-ai-card {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .progress-ai-card > button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .progress-bottom-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .progress-secondary-btn,
+  .progress-primary-btn {
+    justify-content: center;
+  }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+.loading-spinner {
+  animation: progressSpin 1s linear infinite;
+}
+
+@keyframes progressSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
