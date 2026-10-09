@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import {
   Brain,
   User,
@@ -16,11 +17,11 @@ import {
 } from "lucide-react";
 
 import ThemeToggle from "../../components/ThemeToggle";
+import { registerWithEmail } from "../../firebase/authService";
 
 import "../../styles/auth.css";
 
 function Register() {
-
   const navigate = useNavigate();
 
   const [showPassword, setShowPassword] = useState(false);
@@ -40,125 +41,160 @@ function Register() {
     terms: false
   });
 
+  // =========================================================
+  // HANDLE INPUT CHANGES
+  // =========================================================
 
-  // Handle input changes
   const handleChange = (e) => {
-
-    const { name, value, type, checked } = e.target;
+    const {
+      name,
+      value,
+      type,
+      checked
+    } = e.target;
 
     setFormData((previousData) => ({
       ...previousData,
-      [name]: type === "checkbox" ? checked : value
+      [name]:
+        type === "checkbox"
+          ? checked
+          : value
     }));
 
     setError("");
     setSuccess("");
   };
 
+  // =========================================================
+  // REGISTER
+  // =========================================================
 
-  // Submit registration
   const handleSubmit = async (e) => {
-
     e.preventDefault();
 
     setError("");
     setSuccess("");
 
+    // -------------------------------------------------------
+    // Validate password
+    // -------------------------------------------------------
 
-    // Check password
-    if (formData.password !== formData.confirmPassword) {
-
-      setError("Passwords do not match.");
+    if (
+      formData.password !==
+      formData.confirmPassword
+    ) {
+      setError(
+        "Passwords do not match."
+      );
       return;
     }
 
+    // -------------------------------------------------------
+    // Validate terms
+    // -------------------------------------------------------
 
-    // Check terms
     if (!formData.terms) {
-
       setError(
         "Please accept the Terms and Conditions."
       );
-
       return;
     }
 
-
     try {
-
       setLoading(true);
 
+      const name =
+        formData.name.trim();
 
-      /*
-       * Data sent to Spring Boot
-       *
-       * Only the required registration
-       * information is collected here.
-       */
-      const registrationData = {
-
-        name: formData.name.trim(),
-
-        email: formData.email
+      const email =
+        formData.email
           .trim()
-          .toLowerCase(),
+          .toLowerCase();
 
-        password: formData.password,
+      const password =
+        formData.password;
 
-        // These will be completed later
-        targetRole: "",
-        phone: "",
-        location: ""
-      };
+      // =====================================================
+      // STEP 1
+      // CREATE USER IN FIREBASE
+      // =====================================================
 
+      const firebaseUser =
+        await registerWithEmail(
+          email,
+          password
+        );
 
       console.log(
-        "Registration data:",
-        registrationData
+        "Firebase registration successful:",
+        firebaseUser
       );
 
+      // =====================================================
+      // STEP 2
+      // GET FIREBASE ID TOKEN
+      // =====================================================
 
-      // Call Spring Boot Register API
-      const response = await fetch(
-        "http://localhost:8080/api/auth/register",
-        {
-          method: "POST",
+      const idToken =
+        await firebaseUser.getIdToken();
 
-          headers: {
-            "Content-Type": "application/json"
-          },
-
-          body: JSON.stringify(registrationData)
-        }
+      console.log(
+        "Firebase ID token received."
       );
 
+      // =====================================================
+      // STEP 3
+      // SEND FIREBASE USER TO SPRING BOOT
+      // =====================================================
 
-      const data = await response.json();
+      const response =
+        await fetch(
+          "http://localhost:8080/api/auth/firebase",
+          {
+            method: "POST",
 
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              idToken: idToken,
+              name: name
+            })
+          }
+        );
+
+      // =====================================================
+      // STEP 4
+      // READ BACKEND RESPONSE
+      // =====================================================
+
+      const data =
+        await response.json();
 
       // Backend error
       if (!response.ok) {
 
-        setError(
+        throw new Error(
           data.message ||
-          "Registration failed. Please try again."
+          "Failed to save user in database."
         );
-
-        return;
       }
 
-
-      // Registration successful
       console.log(
-        "Registration successful:",
+        "User saved in MySQL:",
         data
       );
 
+      // =====================================================
+      // STEP 5
+      // SUCCESS
+      // =====================================================
 
       setSuccess(
         "Account created successfully! Redirecting to login..."
       );
-
 
       // Clear form
       setFormData({
@@ -169,14 +205,14 @@ function Register() {
         terms: false
       });
 
+      // =====================================================
+      // STEP 6
+      // REDIRECT TO LOGIN
+      // =====================================================
 
-      // Redirect to login
       setTimeout(() => {
-
         navigate("/login");
-
       }, 1500);
-
 
     } catch (error) {
 
@@ -185,11 +221,53 @@ function Register() {
         error
       );
 
+      // =====================================================
+      // FIREBASE ERRORS
+      // =====================================================
 
-      setError(
-        "Unable to connect to the server. Please make sure Spring Boot is running on port 8080."
-      );
+      if (
+        error.code ===
+        "auth/email-already-in-use"
+      ) {
 
+        setError(
+          "This email is already registered. Please login."
+        );
+
+      } else if (
+        error.code ===
+        "auth/invalid-email"
+      ) {
+
+        setError(
+          "Please enter a valid email address."
+        );
+
+      } else if (
+        error.code ===
+        "auth/weak-password"
+      ) {
+
+        setError(
+          "Password must be at least 6 characters."
+        );
+
+      } else if (
+        error.code ===
+        "auth/network-request-failed"
+      ) {
+
+        setError(
+          "Network error. Please check your internet connection."
+        );
+
+      } else {
+
+        setError(
+          error.message ||
+          "Registration failed. Please try again."
+        );
+      }
 
     } finally {
 
@@ -197,11 +275,12 @@ function Register() {
     }
   };
 
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
-
     <div className="auth-page">
-
 
       {/* =====================================================
           LEFT PANEL
@@ -211,7 +290,6 @@ function Register() {
 
         <div className="auth-info-content">
 
-
           {/* BRAND */}
 
           <Link
@@ -220,9 +298,7 @@ function Register() {
           >
 
             <div className="auth-brand-icon">
-
               <Brain size={25} />
-
             </div>
 
             <span>
@@ -235,7 +311,6 @@ function Register() {
           {/* MAIN INFORMATION */}
 
           <div className="auth-info-main">
-
 
             {/* BADGE */}
 
@@ -254,7 +329,9 @@ function Register() {
 
               Turn your
               <span> skills</span>
+
               <br />
+
               into opportunities.
 
             </h1>
@@ -274,7 +351,6 @@ function Register() {
             {/* FEATURES */}
 
             <div className="auth-features">
-
 
               {/* FEATURE 1 */}
 
@@ -350,7 +426,6 @@ function Register() {
 
               </div>
 
-
             </div>
 
           </div>
@@ -367,7 +442,6 @@ function Register() {
             </span>
 
           </div>
-
 
         </div>
 
@@ -653,17 +727,20 @@ function Register() {
                 {loading ? (
 
                   <>
+
                     <Loader2
                       size={18}
                       className="loading-spinner"
                     />
 
                     Creating Account...
+
                   </>
 
                 ) : (
 
                   <>
+
                     Create Account
 
                     <ArrowRight size={18} />

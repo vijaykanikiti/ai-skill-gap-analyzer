@@ -14,16 +14,14 @@ import {
   ArrowRight,
   Sparkles,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  MapPin
 } from "lucide-react";
 
 import "../../styles/target-role.css";
 
-
 function TargetRole() {
-
   const navigate = useNavigate();
-
 
   // ==========================================
   // STATE
@@ -31,167 +29,126 @@ function TargetRole() {
 
   const [jobRoles, setJobRoles] = useState([]);
 
-  const [selectedRole, setSelectedRole] =
-    useState(null);
+  const [selectedRole, setSelectedRole] = useState(null);
 
-  const [search, setSearch] =
-    useState("");
+  const [selectedLocation, setSelectedLocation] = useState(
+    localStorage.getItem("preferredJobLocation") || ""
+  );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [search, setSearch] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState("");
+
+  // ==========================================
+  // JOB LOCATIONS
+  // ==========================================
+
+  const jobLocations = [
+    "Hyderabad",
+    "Bangalore",
+    "Chennai",
+    "Pune",
+    "Mumbai",
+    "Delhi",
+    "Noida",
+    "Gurgaon",
+    "Kolkata",
+    "Visakhapatnam",
+    "Remote"
+  ];
 
   // ==========================================
   // LOAD JOB ROLES
   // ==========================================
 
   useEffect(() => {
-
     fetchJobRoles();
-
   }, []);
-
 
   // ==========================================
   // GET JOB ROLES FROM BACKEND
   // ==========================================
 
   const fetchJobRoles = async () => {
-
     try {
-
       setLoading(true);
-
       setError("");
-
 
       const response = await fetch(
         "http://localhost:8080/api/job-roles"
       );
 
-
-      const data =
-        await response.json();
-
+      const data = await response.json();
 
       if (!response.ok) {
-
-        throw new Error(
-          "Failed to load job roles."
-        );
-
+        throw new Error("Failed to load job roles.");
       }
 
-
-      console.log(
-        "Job Roles:",
-        data
-      );
-
+      console.log("Job Roles:", data);
 
       setJobRoles(data);
 
+      // ==========================================
+      // CHECK PREVIOUSLY SELECTED ROLE
+      // ==========================================
 
-      // Check if previously selected role exists
       const storedRole =
-        localStorage.getItem(
-          "selectedJobRole"
-        );
-
+        localStorage.getItem("selectedJobRole");
 
       if (storedRole) {
-
         try {
-
           const parsedRole =
             JSON.parse(storedRole);
-
 
           const existingRole =
             data.find(
               (role) =>
-                role.id ===
-                parsedRole.id
+                role.id === parsedRole.id
             );
-
 
           if (existingRole) {
-
-            setSelectedRole(
-              existingRole
-            );
-
+            setSelectedRole(existingRole);
           } else if (data.length > 0) {
-
-            setSelectedRole(
-              data[0]
-            );
-
+            setSelectedRole(data[0]);
           }
-
         } catch (err) {
-
           console.error(err);
 
           if (data.length > 0) {
-
-            setSelectedRole(
-              data[0]
-            );
-
+            setSelectedRole(data[0]);
           }
-
         }
-
       } else if (data.length > 0) {
-
-        setSelectedRole(
-          data[0]
-        );
-
+        setSelectedRole(data[0]);
       }
 
-
     } catch (err) {
-
       console.error(
         "Job role error:",
         err
       );
-
 
       setError(
         "Unable to load job roles. Make sure the Spring Boot backend is running."
       );
 
     } finally {
-
       setLoading(false);
-
     }
-
   };
-
 
   // ==========================================
   // ICON FOR ROLE
   // ==========================================
 
   const getRoleIcon = (roleName) => {
+    const name = roleName.toLowerCase();
 
-    const name =
-      roleName.toLowerCase();
-
-
-    if (
-      name.includes("data")
-    ) {
+    if (name.includes("data")) {
       return BarChart3;
     }
-
 
     if (
       name.includes("ai") ||
@@ -201,181 +158,119 @@ function TargetRole() {
       return BrainCircuit;
     }
 
-
-    if (
-      name.includes("cloud")
-    ) {
+    if (name.includes("cloud")) {
       return Cloud;
     }
 
-
-    if (
-      name.includes("backend")
-    ) {
+    if (name.includes("backend")) {
       return Database;
     }
 
-
     return Code2;
-
   };
-
 
   // ==========================================
   // ROLE SKILLS
   // ==========================================
 
   const getRoleSkills = (roleName) => {
+    const name = roleName.toLowerCase();
 
-    const name =
-      roleName.toLowerCase();
-
-
-    if (
-      name.includes("full stack")
-    ) {
-
+    if (name.includes("full stack")) {
       return [
         "React",
         "Java",
         "Spring Boot",
         "MySQL"
       ];
-
     }
 
-
-    if (
-      name.includes("java")
-    ) {
-
+    if (name.includes("java")) {
       return [
         "Java",
         "Spring Boot",
         "REST API",
         "MySQL"
       ];
-
     }
 
-
-    if (
-      name.includes("frontend")
-    ) {
-
+    if (name.includes("frontend")) {
       return [
         "React",
         "JavaScript",
         "HTML",
         "CSS"
       ];
-
     }
 
-
-    if (
-      name.includes("backend")
-    ) {
-
+    if (name.includes("backend")) {
       return [
         "Java",
         "Spring Boot",
         "SQL",
         "REST API"
       ];
-
     }
-
 
     if (
       name.includes("ai") ||
       name.includes("ml")
     ) {
-
       return [
         "Python",
         "Machine Learning",
         "Deep Learning",
         "AI"
       ];
-
     }
 
-
-    if (
-      name.includes("data analyst")
-    ) {
-
+    if (name.includes("data analyst")) {
       return [
         "SQL",
         "Excel",
         "Python",
         "Power BI"
       ];
-
     }
 
-
-    if (
-      name.includes("cloud")
-    ) {
-
+    if (name.includes("cloud")) {
       return [
         "AWS",
         "Docker",
         "Linux",
         "Cloud"
       ];
-
     }
-
 
     return [
       "Programming",
       "Problem Solving",
       "Communication"
     ];
-
   };
-
 
   // ==========================================
   // ROLE DESCRIPTION
   // ==========================================
 
   const getRoleDescription = (roleName) => {
+    const name = roleName.toLowerCase();
 
-    const name =
-      roleName.toLowerCase();
-
-
-    if (
-      name.includes("full stack")
-    ) {
+    if (name.includes("full stack")) {
       return "Build complete web applications using frontend and backend technologies.";
     }
 
-
-    if (
-      name.includes("java")
-    ) {
+    if (name.includes("java")) {
       return "Develop enterprise applications using Java and backend technologies.";
     }
 
-
-    if (
-      name.includes("frontend")
-    ) {
+    if (name.includes("frontend")) {
       return "Create responsive and interactive web applications.";
     }
 
-
-    if (
-      name.includes("backend")
-    ) {
+    if (name.includes("backend")) {
       return "Design APIs, databases and scalable backend systems.";
     }
-
 
     if (
       name.includes("ai") ||
@@ -384,25 +279,16 @@ function TargetRole() {
       return "Build intelligent applications using machine learning and AI.";
     }
 
-
-    if (
-      name.includes("data")
-    ) {
+    if (name.includes("data")) {
       return "Analyze data and generate useful business insights.";
     }
 
-
-    if (
-      name.includes("cloud")
-    ) {
+    if (name.includes("cloud")) {
       return "Build and manage cloud infrastructure and applications.";
     }
 
-
     return "Develop professional skills required for this career role.";
-
   };
-
 
   // ==========================================
   // FILTER ROLES
@@ -412,22 +298,24 @@ function TargetRole() {
     jobRoles.filter((role) =>
       role.roleName
         .toLowerCase()
-        .includes(
-          search.toLowerCase()
-        )
+        .includes(search.toLowerCase())
     );
-
 
   // ==========================================
   // SELECT ROLE
   // ==========================================
 
   const handleSelectRole = (role) => {
-
     setSelectedRole(role);
-
   };
 
+  // ==========================================
+  // SELECT LOCATION
+  // ==========================================
+
+  const handleSelectLocation = (location) => {
+    setSelectedLocation(location);
+  };
 
   // ==========================================
   // CONTINUE
@@ -435,18 +323,26 @@ function TargetRole() {
 
   const handleContinue = () => {
 
+    // Check role
     if (!selectedRole) {
-
       alert(
         "Please select a target job role."
       );
-
       return;
-
     }
 
+    // Check location
+    if (!selectedLocation) {
+      alert(
+        "Please select your preferred job location."
+      );
+      return;
+    }
 
-    // Save selected role
+    // ==========================================
+    // SAVE SELECTED ROLE
+    // ==========================================
+
     localStorage.setItem(
       "selectedJobRole",
       JSON.stringify({
@@ -455,26 +351,48 @@ function TargetRole() {
       })
     );
 
+    // ==========================================
+    // SAVE LOCATION
+    // ==========================================
 
-    console.log(
-      "Selected Job Role:",
-      selectedRole
+    localStorage.setItem(
+      "preferredJobLocation",
+      selectedLocation
     );
 
+    // ==========================================
+    // SAVE COMPLETE CAREER PREFERENCES
+    // ==========================================
 
-    navigate("/skill-gap");
+    const careerPreferences = {
+      targetRoleId: selectedRole.id,
+      targetRole: selectedRole.roleName,
+      location: selectedLocation
+    };
 
+    localStorage.setItem(
+      "careerPreferences",
+      JSON.stringify(careerPreferences)
+    );
+
+    console.log(
+      "Career Preferences:",
+      careerPreferences
+    );
+
+    // ==========================================
+    // GO TO RESUME UPLOAD
+    // ==========================================
+
+    navigate("/resume");
   };
-
 
   // ==========================================
   // LOADING
   // ==========================================
 
   if (loading) {
-
     return (
-
       <div className="target-role-page">
 
         <div
@@ -504,20 +422,15 @@ function TargetRole() {
         </div>
 
       </div>
-
     );
-
   }
-
 
   // ==========================================
   // ERROR
   // ==========================================
 
   if (error) {
-
     return (
-
       <div className="target-role-page">
 
         <div
@@ -544,20 +457,15 @@ function TargetRole() {
         </div>
 
       </div>
-
     );
-
   }
-
 
   // ==========================================
   // MAIN UI
   // ==========================================
 
   return (
-
     <div className="target-role-page">
-
 
       {/* ======================================
           PAGE HEADER
@@ -577,13 +485,11 @@ function TargetRole() {
 
           </div>
 
-
           <p>
             Select the career role you want to prepare for.
           </p>
 
         </div>
-
 
         <div className="target-status">
 
@@ -594,7 +500,6 @@ function TargetRole() {
         </div>
 
       </div>
-
 
       {/* ======================================
           CURRENT TARGET
@@ -608,13 +513,11 @@ function TargetRole() {
 
         </div>
 
-
         <div className="current-target-info">
 
           <span>
             Current Target Role
           </span>
-
 
           <h3>
 
@@ -626,14 +529,12 @@ function TargetRole() {
 
         </div>
 
-
         <CheckCircle2
           size={23}
           className="selected-check"
         />
 
       </div>
-
 
       {/* ======================================
           SEARCH
@@ -642,7 +543,6 @@ function TargetRole() {
       <div className="target-search">
 
         <Search size={19} />
-
 
         <input
           type="text"
@@ -654,7 +554,6 @@ function TargetRole() {
         />
 
       </div>
-
 
       {/* ======================================
           JOB ROLES
@@ -676,15 +575,11 @@ function TargetRole() {
 
           </div>
 
-
           <span>
-
             {filteredRoles.length} Roles
-
           </span>
 
         </div>
-
 
         <div className="role-grid">
 
@@ -695,15 +590,14 @@ function TargetRole() {
                 role.roleName
               );
 
-
             const isSelected =
               selectedRole?.id ===
               role.id;
 
-
             return (
 
               <button
+                type="button"
                 key={role.id}
                 className={`role-card ${
                   isSelected
@@ -725,7 +619,6 @@ function TargetRole() {
 
                   </div>
 
-
                   {isSelected && (
 
                     <CheckCircle2
@@ -737,11 +630,9 @@ function TargetRole() {
 
                 </div>
 
-
                 <h4>
                   {role.roleName}
                 </h4>
-
 
                 <p>
 
@@ -750,7 +641,6 @@ function TargetRole() {
                   )}
 
                 </p>
-
 
                 <div className="role-skills">
 
@@ -774,7 +664,6 @@ function TargetRole() {
 
         </div>
 
-
         {filteredRoles.length === 0 && (
 
           <div
@@ -794,6 +683,87 @@ function TargetRole() {
 
       </div>
 
+      {/* ======================================
+          PREFERRED JOB LOCATION
+      ====================================== */}
+
+      <div className="location-section">
+
+        <div className="section-heading">
+
+          <div>
+
+            <h3
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px"
+              }}
+            >
+
+              <MapPin size={20} />
+
+              Where do you want to work?
+
+            </h3>
+
+            <p>
+              Select your preferred job location.
+              We will use this later to find matching jobs.
+            </p>
+
+          </div>
+
+        </div>
+
+        <div className="location-grid">
+
+          {jobLocations.map((location) => {
+
+            const isSelected =
+              selectedLocation === location;
+
+            return (
+
+              <button
+                type="button"
+                key={location}
+                className={`location-card ${
+                  isSelected
+                    ? "selected"
+                    : ""
+                }`}
+                onClick={() =>
+                  handleSelectLocation(
+                    location
+                  )
+                }
+              >
+
+                <MapPin size={19} />
+
+                <span>
+                  {location}
+                </span>
+
+                {isSelected && (
+
+                  <CheckCircle2
+                    size={18}
+                    className="location-selected-icon"
+                  />
+
+                )}
+
+              </button>
+
+            );
+
+          })}
+
+        </div>
+
+      </div>
 
       {/* ======================================
           CUSTOM ROLE
@@ -807,22 +777,17 @@ function TargetRole() {
 
         </div>
 
-
         <div className="custom-role-content">
 
           <h3>
             Can't find your target role?
           </h3>
 
-
           <p>
-
             You can enter a custom job role.
             Custom role analysis will be added
             in a later step.
-
           </p>
-
 
           <div className="custom-role-input">
 
@@ -830,7 +795,6 @@ function TargetRole() {
               type="text"
               placeholder="Example: Full Stack Java Developer"
             />
-
 
             <button
               type="button"
@@ -849,7 +813,6 @@ function TargetRole() {
 
       </div>
 
-
       {/* ======================================
           AI INFORMATION
       ====================================== */}
@@ -862,18 +825,18 @@ function TargetRole() {
 
         </div>
 
-
         <div>
 
           <h3>
             What happens next?
           </h3>
 
-
           <p>
 
-            The system will compare your resume skills
-            with the requirements of{" "}
+            Your resume will be analyzed based on your selected
+            career role and preferred job location. The system
+            will compare your resume skills with the requirements
+            of{" "}
 
             <strong>
 
@@ -881,9 +844,9 @@ function TargetRole() {
                 ? selectedRole.roleName
                 : "your selected role"}
 
-            </strong>{" "}
+            </strong>
 
-            and identify the skills you need to improve.
+            {" "}and identify the skills you need to improve.
 
           </p>
 
@@ -891,33 +854,33 @@ function TargetRole() {
 
       </div>
 
-
       {/* ======================================
-          ACTION
+          ACTION BUTTONS
       ====================================== */}
 
       <div className="target-actions">
 
-
         <button
+          type="button"
           className="back-button"
           onClick={() =>
-            navigate("/resume-analysis")
+            navigate("/resume")
+          }
+        >
+          Back to Resume
+        </button>
+
+        <button
+          type="button"
+          className="continue-button"
+          onClick={handleContinue}
+          disabled={
+            !selectedRole ||
+            !selectedLocation
           }
         >
 
-          Back to Resume
-
-        </button>
-
-
-        <button
-          className="continue-button"
-          onClick={handleContinue}
-          disabled={!selectedRole}
-        >
-
-          Analyze My Skill Gap
+          Continue to Resume Upload
 
           <ArrowRight size={18} />
 
@@ -925,12 +888,8 @@ function TargetRole() {
 
       </div>
 
-
     </div>
-
   );
-
 }
-
 
 export default TargetRole;

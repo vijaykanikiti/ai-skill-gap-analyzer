@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   TrendingUp,
   Target,
@@ -13,7 +14,8 @@ import {
   Sparkles,
   Award,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Save,
 } from "lucide-react";
 
 import "../../styles/progress.css";
@@ -23,8 +25,14 @@ function Progress() {
 
   const [progressData, setProgressData] = useState([]);
   const [analysis, setAnalysis] = useState(null);
+
+  const [overallProgressFromApi, setOverallProgressFromApi] =
+    useState(0);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [updatingSkill, setUpdatingSkill] = useState("");
 
   // =====================================================
   // LOAD PROGRESS
@@ -42,16 +50,28 @@ function Progress() {
       const storedUser = localStorage.getItem("user");
       const storedAnalysis = localStorage.getItem("analysis");
 
+      // -------------------------------------------------
+      // CHECK USER
+      // -------------------------------------------------
+
       if (!storedUser) {
-        setError("User information not found. Please login again.");
+        setError(
+          "User information not found. Please login again."
+        );
+
         setLoading(false);
         return;
       }
+
+      // -------------------------------------------------
+      // CHECK ANALYSIS
+      // -------------------------------------------------
 
       if (!storedAnalysis) {
         setError(
           "No skill analysis found. Please complete the Skill Gap analysis first."
         );
+
         setLoading(false);
         return;
       }
@@ -64,20 +84,34 @@ function Progress() {
       const userId = user.id;
       const analysisId = analysisData.analysisId;
 
+      // -------------------------------------------------
+      // CHECK USER ID
+      // -------------------------------------------------
+
       if (!userId) {
         setError("User ID is missing.");
         setLoading(false);
         return;
       }
 
+      // -------------------------------------------------
+      // CHECK ANALYSIS ID
+      // -------------------------------------------------
+
       if (!analysisId) {
-        setError("Analysis ID is missing.");
+        setError(
+          "Analysis ID is missing. Please complete the analysis first."
+        );
+
         setLoading(false);
         return;
       }
 
+      console.log("User ID:", userId);
+      console.log("Analysis ID:", analysisId);
+
       // =================================================
-      // GET PROGRESS FOR THIS ANALYSIS
+      // GET PROGRESS FROM BACKEND
       // =================================================
 
       const response = await fetch(
@@ -96,28 +130,194 @@ function Progress() {
 
       console.log("Progress API Response:", data);
 
-      const progressArray = Array.isArray(data)
-        ? data
-        : Array.isArray(data.data)
-        ? data.data
+      // =================================================
+      // IMPORTANT
+      // BACKEND RETURNS:
+      //
+      // {
+      //   analysisId: 1,
+      //   overallProgress: 25,
+      //   skills: [...]
+      // }
+      // =================================================
+
+      const progressArray = Array.isArray(data.skills)
+        ? data.skills
         : [];
 
       setProgressData(progressArray);
+
+      setOverallProgressFromApi(
+        Number(data.overallProgress || 0)
+      );
 
       localStorage.setItem(
         "progress",
         JSON.stringify(progressArray)
       );
+
+      console.log(
+        "Progress Skills:",
+        progressArray
+      );
+
+      console.log(
+        "Overall Progress:",
+        data.overallProgress
+      );
+
     } catch (err) {
       console.error("Progress error:", err);
 
       setError(
-        err.message || "Unable to load learning progress."
+        err.message ||
+          "Unable to load learning progress."
       );
     } finally {
       setLoading(false);
     }
   };
+
+
+  // =====================================================
+  // UPDATE SKILL PROGRESS
+  // =====================================================
+
+  const updateSkillProgress = async (
+    skill,
+    newProgress
+  ) => {
+    try {
+      const storedUser =
+        localStorage.getItem("user");
+
+      const storedAnalysis =
+        localStorage.getItem("analysis");
+
+      if (!storedUser || !storedAnalysis) {
+        alert(
+          "User or analysis information is missing."
+        );
+
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      const analysisData =
+        JSON.parse(storedAnalysis);
+
+      const userId = user.id;
+      const analysisId =
+        analysisData.analysisId;
+
+      if (!userId || !analysisId) {
+        alert(
+          "User ID or Analysis ID is missing."
+        );
+
+        return;
+      }
+
+      const progressValue = Math.min(
+        100,
+        Math.max(
+          0,
+          Number(newProgress)
+        )
+      );
+
+      setUpdatingSkill(skill.skillName);
+
+      // =================================================
+      // UPDATE BACKEND
+      // =================================================
+
+      const response = await fetch(
+        "http://localhost:8080/api/progress/update",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            userId: userId,
+            analysisId: analysisId,
+            skillName: skill.skillName,
+            progressPercentage:
+              progressValue,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+            data?.message ||
+            "Failed to update progress."
+        );
+      }
+
+      console.log(
+        "Updated skill:",
+        data
+      );
+
+      // =================================================
+      // UPDATE LOCAL UI
+      // =================================================
+
+      setProgressData((previous) =>
+        previous.map((item) =>
+          item.skillName ===
+          skill.skillName
+            ? {
+                ...item,
+                progressPercentage:
+                  progressValue,
+                progress:
+                  progressValue,
+
+                status:
+                  progressValue >= 100
+                    ? "COMPLETED"
+                    : progressValue > 0
+                    ? "IN_PROGRESS"
+                    : "NOT_STARTED",
+              }
+            : item
+        )
+      );
+
+      // =================================================
+      // REFRESH DATA FROM BACKEND
+      // =================================================
+
+      await loadProgress();
+
+      alert(
+        `${skill.skillName} progress updated successfully!`
+      );
+
+    } catch (err) {
+      console.error(
+        "Update progress error:",
+        err
+      );
+
+      alert(
+        err.message ||
+          "Failed to update skill progress."
+      );
+    } finally {
+      setUpdatingSkill("");
+    }
+  };
+
 
   // =====================================================
   // HELPERS
@@ -135,11 +335,16 @@ function Progress() {
       return 0;
     }
 
-    return Math.min(100, Math.max(0, number));
+    return Math.min(
+      100,
+      Math.max(0, number)
+    );
   };
 
+
   const getStatus = (item) => {
-    const progress = getProgress(item);
+    const progress =
+      getProgress(item);
 
     if (item.status) {
       return item.status;
@@ -156,10 +361,14 @@ function Progress() {
     return "NOT_STARTED";
   };
 
-  const getDisplayStatus = (item) => {
-    const status = getStatus(item);
 
-    switch (status.toUpperCase()) {
+  const getDisplayStatus = (item) => {
+    const status =
+      getStatus(item);
+
+    switch (
+      status.toUpperCase()
+    ) {
       case "COMPLETED":
         return "Completed";
 
@@ -174,8 +383,10 @@ function Progress() {
     }
   };
 
+
   const getSkillStatus = (item) => {
-    const progress = getProgress(item);
+    const progress =
+      getProgress(item);
 
     if (progress >= 80) {
       return "Strong";
@@ -192,68 +403,88 @@ function Progress() {
     return "Needs Focus";
   };
 
+
   // =====================================================
   // OVERALL PROGRESS
   // =====================================================
 
   const overallProgress =
-    progressData.length > 0
-      ? Math.round(
-          progressData.reduce(
-            (sum, item) => sum + getProgress(item),
-            0
-          ) / progressData.length
-        )
-      : 0;
+    Math.round(
+      overallProgressFromApi
+    );
+
 
   // =====================================================
   // COMPLETED SKILLS
   // =====================================================
 
-  const completedSkills = progressData.filter(
-    (item) => getProgress(item) === 100
-  ).length;
+  const completedSkills =
+    progressData.filter(
+      (item) =>
+        getProgress(item) === 100
+    ).length;
+
 
   // =====================================================
   // IN-PROGRESS SKILLS
   // =====================================================
 
-  const inProgressSkills = progressData.filter(
-    (item) => {
-      const progress = getProgress(item);
-      return progress > 0 && progress < 100;
-    }
-  ).length;
+  const inProgressSkills =
+    progressData.filter(
+      (item) => {
+        const progress =
+          getProgress(item);
+
+        return (
+          progress > 0 &&
+          progress < 100
+        );
+      }
+    ).length;
+
 
   // =====================================================
   // LEARNING STREAK
   // =====================================================
 
-  /*
-   * Your current backend does not store daily learning
-   * activity, so we don't invent a streak.
-   */
   const learningStreak = "—";
+
 
   // =====================================================
   // WEEKLY ACTIVITY
   // =====================================================
 
-  /*
-   * Your current backend does not have a daily activity
-   * table/API. Therefore the weekly chart is kept empty
-   * instead of displaying fake hours.
-   */
-
   const weeklyActivity = [
-    { day: "Mon", hours: 0 },
-    { day: "Tue", hours: 0 },
-    { day: "Wed", hours: 0 },
-    { day: "Thu", hours: 0 },
-    { day: "Fri", hours: 0 },
-    { day: "Sat", hours: 0 },
-    { day: "Sun", hours: 0 }
+    {
+      day: "Mon",
+      hours: 0,
+    },
+    {
+      day: "Tue",
+      hours: 0,
+    },
+    {
+      day: "Wed",
+      hours: 0,
+    },
+    {
+      day: "Thu",
+      hours: 0,
+    },
+    {
+      day: "Fri",
+      hours: 0,
+    },
+    {
+      day: "Sat",
+      hours: 0,
+    },
+    {
+      day: "Sun",
+      hours: 0,
+    },
   ];
+
 
   // =====================================================
   // ACHIEVEMENTS
@@ -263,28 +494,38 @@ function Progress() {
     {
       icon: Trophy,
       title: "First Analysis",
-      description: "Completed your first resume analysis",
-      unlocked: !!analysis
+      description:
+        "Completed your first resume analysis",
+      unlocked: !!analysis,
     },
+
     {
       icon: Flame,
       title: "Learning Streak",
-      description: "Track continuous learning activity",
-      unlocked: false
+      description:
+        "Track continuous learning activity",
+      unlocked: false,
     },
+
     {
       icon: Award,
       title: "Skill Builder",
-      description: "Improve 3 technical skills",
-      unlocked: completedSkills >= 3
+      description:
+        "Improve 3 technical skills",
+      unlocked:
+        completedSkills >= 3,
     },
+
     {
       icon: Target,
       title: "Job Ready",
-      description: "Reach 90% job readiness",
-      unlocked: overallProgress >= 90
-    }
+      description:
+        "Reach 90% job readiness",
+      unlocked:
+        overallProgress >= 90,
+    },
   ];
+
 
   // =====================================================
   // LOADING
@@ -297,17 +538,25 @@ function Progress() {
         <div className="progress-header">
 
           <div>
+
             <div className="progress-title">
+
               <TrendingUp size={25} />
-              <h2>My Progress</h2>
+
+              <h2>
+                My Progress
+              </h2>
+
             </div>
 
             <p>
               Loading your learning progress...
             </p>
+
           </div>
 
         </div>
+
 
         <div
           style={{
@@ -316,9 +565,10 @@ function Progress() {
             alignItems: "center",
             justifyContent: "center",
             flexDirection: "column",
-            gap: "15px"
+            gap: "15px",
           }}
         >
+
           <Loader2
             size={42}
             className="loading-spinner"
@@ -331,11 +581,13 @@ function Progress() {
           <p>
             Fetching your latest skill progress...
           </p>
+
         </div>
 
       </div>
     );
   }
+
 
   // =====================================================
   // ERROR
@@ -348,18 +600,26 @@ function Progress() {
         <div className="progress-header">
 
           <div>
+
             <div className="progress-title">
+
               <TrendingUp size={25} />
-              <h2>My Progress</h2>
+
+              <h2>
+                My Progress
+              </h2>
+
             </div>
 
             <p>
               Track your learning journey and improve
               your job readiness.
             </p>
+
           </div>
 
         </div>
+
 
         <div
           style={{
@@ -369,7 +629,7 @@ function Progress() {
             justifyContent: "center",
             flexDirection: "column",
             gap: "15px",
-            textAlign: "center"
+            textAlign: "center",
           }}
         >
 
@@ -390,7 +650,9 @@ function Progress() {
             }
           >
             Go to Skill Gap
+
             <ArrowRight size={16} />
+
           </button>
 
         </div>
@@ -399,18 +661,30 @@ function Progress() {
     );
   }
 
+
+  // =====================================================
+  // MAIN PAGE
+  // =====================================================
+
   return (
     <div className="progress-page">
 
-      {/* HEADER */}
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
       <div className="progress-header">
 
         <div>
 
           <div className="progress-title">
+
             <TrendingUp size={25} />
-            <h2>My Progress</h2>
+
+            <h2>
+              My Progress
+            </h2>
+
           </div>
 
           <p>
@@ -420,15 +694,21 @@ function Progress() {
 
         </div>
 
+
         <div className="progress-date">
+
           <CalendarDays size={15} />
+
           Current Progress
+
         </div>
 
       </div>
 
 
-      {/* TOP STATS */}
+      {/* =================================================
+          TOP STATS
+      ================================================= */}
 
       <div className="progress-stats">
 
@@ -437,7 +717,9 @@ function Progress() {
         <div className="progress-stat-card">
 
           <div className="progress-stat-icon purple">
+
             <Target size={21} />
+
           </div>
 
           <div>
@@ -461,12 +743,14 @@ function Progress() {
         </div>
 
 
-        {/* SKILLS IMPROVED */}
+        {/* SKILLS COMPLETED */}
 
         <div className="progress-stat-card">
 
           <div className="progress-stat-icon green">
+
             <CheckCircle2 size={21} />
+
           </div>
 
           <div>
@@ -480,7 +764,9 @@ function Progress() {
             </strong>
 
             <small>
-              {progressData.length} tracked skills
+              {progressData.length}
+              {" "}
+              tracked skills
             </small>
 
           </div>
@@ -493,7 +779,9 @@ function Progress() {
         <div className="progress-stat-card">
 
           <div className="progress-stat-icon blue">
+
             <Clock3 size={21} />
+
           </div>
 
           <div>
@@ -520,7 +808,9 @@ function Progress() {
         <div className="progress-stat-card">
 
           <div className="progress-stat-icon orange">
+
             <Flame size={21} />
+
           </div>
 
           <div>
@@ -544,11 +834,16 @@ function Progress() {
       </div>
 
 
-      {/* MAIN GRID */}
+      {/* =================================================
+          MAIN GRID
+      ================================================= */}
 
       <div className="progress-main-grid">
 
-        {/* SKILLS */}
+
+        {/* =================================================
+            SKILL PROGRESS
+        ================================================= */}
 
         <div className="progress-panel skills-panel">
 
@@ -561,7 +856,7 @@ function Progress() {
               </h3>
 
               <p>
-                Your current learning progress
+                Update your learning progress
               </p>
 
             </div>
@@ -572,7 +867,9 @@ function Progress() {
               }
             >
               View Skill Gap
+
               <ArrowRight size={14} />
+
             </button>
 
           </div>
@@ -585,15 +882,17 @@ function Progress() {
               <div
                 style={{
                   padding: "25px",
-                  textAlign: "center"
+                  textAlign: "center",
                 }}
               >
+
                 <BookOpen size={35} />
 
                 <p>
                   No skill progress has been
                   recorded yet.
                 </p>
+
               </div>
 
             ) : (
@@ -603,7 +902,12 @@ function Progress() {
                 const progress =
                   getProgress(skill);
 
+                const isUpdating =
+                  updatingSkill ===
+                  skill.skillName;
+
                 return (
+
                   <div
                     className="skill-progress-item"
                     key={
@@ -611,6 +915,8 @@ function Progress() {
                       skill.skillName
                     }
                   >
+
+                    {/* TOP */}
 
                     <div className="skill-progress-top">
 
@@ -636,19 +942,138 @@ function Progress() {
                     </div>
 
 
+                    {/* PROGRESS BAR */}
+
                     <div className="skill-progress-track">
 
                       <div
                         className="skill-progress-fill"
                         style={{
                           width:
-                            `${progress}%`
+                            `${progress}%`,
                         }}
                       />
 
                     </div>
 
+
+                    {/* SLIDER */}
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        marginTop: "12px",
+                      }}
+                    >
+
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={progress}
+                        disabled={isUpdating}
+                        onChange={(e) => {
+
+                          const value =
+                            Number(
+                              e.target.value
+                            );
+
+                          setProgressData(
+                            (previous) =>
+                              previous.map(
+                                (item) =>
+                                  item.skillName ===
+                                  skill.skillName
+                                    ? {
+                                        ...item,
+                                        progressPercentage:
+                                          value,
+                                        progress:
+                                          value,
+                                        status:
+                                          value >=
+                                          100
+                                            ? "COMPLETED"
+                                            : value >
+                                              0
+                                            ? "IN_PROGRESS"
+                                            : "NOT_STARTED",
+                                      }
+                                    : item
+                              )
+                          );
+
+                        }}
+                        style={{
+                          flex: 1,
+                          cursor:
+                            "pointer",
+                        }}
+                      />
+
+
+                      {/* UPDATE BUTTON */}
+<button
+  type="button"
+  className="skill-update-btn"
+  disabled={isUpdating}
+  onClick={() =>
+    updateSkillProgress(
+      skill,
+      progress
+    )
+}
+>
+
+                        {isUpdating ? (
+
+                          <Loader2
+                            size={15}
+                            className="loading-spinner"
+                          />
+
+                        ) : (
+
+                          <Save
+                            size={15}
+                          />
+
+                        )}
+
+                        {isUpdating
+                          ? "Saving..."
+                          : "Update"}
+
+                      </button>
+
+                    </div>
+
+
+                    {/* STATUS */}
+
+                    <div
+                      style={{
+                        marginTop: "8px",
+                        fontSize: "13px",
+                      }}
+                    >
+
+                      Status:{" "}
+
+                      <strong>
+                        {getDisplayStatus(
+                          skill
+                        )}
+                      </strong>
+
+                    </div>
+
                   </div>
+
                 );
               })
 
@@ -659,7 +1084,9 @@ function Progress() {
         </div>
 
 
-        {/* WEEKLY ACTIVITY */}
+        {/* =================================================
+            WEEKLY ACTIVITY
+        ================================================= */}
 
         <div className="progress-panel activity-panel">
 
@@ -684,45 +1111,51 @@ function Progress() {
 
           <div className="activity-chart">
 
-            {weeklyActivity.map((item) => {
+            {weeklyActivity.map(
+              (item) => {
 
-              const height =
-                item.hours === 0
-                  ? "0%"
-                  : `${Math.min(
-                      (item.hours / 4) *
-                        100,
-                      100
-                    )}%`;
+                const height =
+                  item.hours === 0
+                    ? "0%"
+                    : `${Math.min(
+                        (item.hours /
+                          4) *
+                          100,
+                        100
+                      )}%`;
 
-              return (
-                <div
-                  className="activity-column"
-                  key={item.day}
-                >
+                return (
 
-                  <span>
-                    {item.hours}h
-                  </span>
+                  <div
+                    className="activity-column"
+                    key={item.day}
+                  >
 
-                  <div className="activity-bar-container">
+                    <span>
+                      {item.hours}h
+                    </span>
 
-                    <div
-                      className="activity-bar"
-                      style={{
-                        height
-                      }}
-                    />
+                    <div className="activity-bar-container">
+
+                      <div
+                        className="activity-bar"
+                        style={{
+                          height,
+                        }}
+                      />
+
+                    </div>
+
+                    <small>
+                      {item.day}
+                    </small>
 
                   </div>
 
-                  <small>
-                    {item.day}
-                  </small>
+                );
 
-                </div>
-              );
-            })}
+              }
+            )}
 
           </div>
 
@@ -760,7 +1193,9 @@ function Progress() {
       </div>
 
 
-      {/* ROADMAP PROGRESS */}
+      {/* =================================================
+          ROADMAP PROGRESS
+      ================================================= */}
 
       <div className="roadmap-progress-panel">
 
@@ -785,7 +1220,9 @@ function Progress() {
             }
           >
             View Roadmap
+
             <ArrowRight size={14} />
+
           </button>
 
         </div>
@@ -797,7 +1234,7 @@ function Progress() {
 
             <div
               style={{
-                padding: "25px"
+                padding: "25px",
               }}
             >
               No roadmap progress recorded yet.
@@ -805,49 +1242,57 @@ function Progress() {
 
           ) : (
 
-            progressData.map((item, index) => {
+            progressData.map(
+              (item, index) => {
 
-              const progress =
-                getProgress(item);
+                const progress =
+                  getProgress(item);
 
-              return (
-                <div
-                  className="roadmap-progress-item"
-                  key={
-                    item.id ||
-                    `${item.skillName}-${index}`
-                  }
-                >
+                return (
 
                   <div
-                    className={
-                      index % 2 === 0
-                        ? "roadmap-progress-circle"
-                        : "roadmap-progress-circle warning"
+                    className="roadmap-progress-item"
+                    key={
+                      item.id ||
+                      `${item.skillName}-${index}`
                     }
                   >
-                    <strong>
-                      {progress}%
-                    </strong>
+
+                    <div
+                      className={
+                        index % 2 === 0
+                          ? "roadmap-progress-circle"
+                          : "roadmap-progress-circle warning"
+                      }
+                    >
+
+                      <strong>
+                        {progress}%
+                      </strong>
+
+                    </div>
+
+
+                    <div>
+
+                      <h4>
+                        {item.skillName}
+                      </h4>
+
+                      <span>
+                        {getDisplayStatus(
+                          item
+                        )}
+                      </span>
+
+                    </div>
+
                   </div>
 
-                  <div>
+                );
 
-                    <h4>
-                      {item.skillName}
-                    </h4>
-
-                    <span>
-                      {getDisplayStatus(
-                        item
-                      )}
-                    </span>
-
-                  </div>
-
-                </div>
-              );
-            })
+              }
+            )
 
           )}
 
@@ -856,13 +1301,18 @@ function Progress() {
       </div>
 
 
-      {/* AI INSIGHT */}
+      {/* =================================================
+          AI INSIGHT
+      ================================================= */}
 
       <div className="progress-ai-card">
 
         <div className="progress-ai-icon">
+
           <Sparkles size={23} />
+
         </div>
+
 
         <div className="progress-ai-content">
 
@@ -871,15 +1321,19 @@ function Progress() {
           </span>
 
           <h3>
+
             {overallProgress >= 70
               ? "You're making good progress."
               : "Focus on improving your current skill gaps."}
+
           </h3>
+
 
           <p>
 
             Your current overall learning
             progress is{" "}
+
             <strong>
               {overallProgress}%
             </strong>
@@ -887,13 +1341,17 @@ function Progress() {
 
             {analysis?.missingSkills?.length >
               0 && (
+
               <>
                 {" "}
                 Continue working on{" "}
+
                 <strong>
+
                   {analysis.missingSkills
                     .slice(0, 3)
                     .join(", ")}
+
                 </strong>
                 .
               </>
@@ -910,13 +1368,17 @@ function Progress() {
           }
         >
           View Recommendations
+
           <ArrowRight size={15} />
+
         </button>
 
       </div>
 
 
-      {/* ACHIEVEMENTS */}
+      {/* =================================================
+          ACHIEVEMENTS
+      ================================================= */}
 
       <div className="achievements-section">
 
@@ -946,13 +1408,16 @@ function Progress() {
                 achievement.icon;
 
               return (
+
                 <div
                   className={
                     achievement.unlocked
                       ? "achievement-card unlocked"
                       : "achievement-card locked"
                   }
-                  key={achievement.title}
+                  key={
+                    achievement.title
+                  }
                 >
 
                   <div className="achievement-icon">
@@ -960,6 +1425,7 @@ function Progress() {
                     <Icon size={21} />
 
                   </div>
+
 
                   <div>
 
@@ -973,15 +1439,20 @@ function Progress() {
 
                   </div>
 
+
                   {achievement.unlocked && (
+
                     <CheckCircle2
                       className="achievement-check"
                       size={16}
                     />
+
                   )}
 
                 </div>
+
               );
+
             }
           )}
 
@@ -990,7 +1461,9 @@ function Progress() {
       </div>
 
 
-      {/* BOTTOM */}
+      {/* =================================================
+          BOTTOM ACTIONS
+      ================================================= */}
 
       <div className="progress-bottom-actions">
 
@@ -1011,7 +1484,9 @@ function Progress() {
           }
         >
           Continue Learning
+
           <ArrowRight size={16} />
+
         </button>
 
       </div>

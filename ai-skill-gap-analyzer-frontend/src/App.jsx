@@ -34,6 +34,8 @@ import AdminActivity from "./pages/admin/AdminActivity";
 
 import Terms from "./pages/Terms";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import VerifyLoginOtp from "./pages/VerifyLoginOtp";
+
 
 function App() {
   return (
@@ -64,7 +66,10 @@ function App() {
         element={<ResetPassword />}
       />
 
-
+      <Route
+  path="/verify-login-otp"
+  element={<VerifyLoginOtp />}
+/>
 
       {/* ================= USER SECTION ================= */}
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -16,9 +17,11 @@ import {
   Home
 } from "lucide-react";
 
-import { GoogleLogin } from "@react-oauth/google";
-
 import ThemeToggle from "../../components/ThemeToggle";
+
+import {
+  loginWithGoogle
+} from "../../firebase/authService";
 
 import "../../styles/auth.css";
 
@@ -26,17 +29,21 @@ function Login() {
 
   const navigate = useNavigate();
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [error, setError] = useState("");
+  const [error, setError] =
+    useState("");
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-    remember: false
-  });
+  const [formData, setFormData] =
+    useState({
+      email: "",
+      password: "",
+      remember: false
+    });
 
 
   // =========================================================
@@ -54,6 +61,7 @@ function Login() {
 
     setFormData((previousData) => ({
       ...previousData,
+
       [name]:
         type === "checkbox"
           ? checked
@@ -65,7 +73,8 @@ function Login() {
 
 
   // =========================================================
-  // NORMAL EMAIL/PASSWORD LOGIN
+  // EMAIL + PASSWORD LOGIN
+  // TWO-STEP AUTHENTICATION
   // =========================================================
 
   const handleSubmit = async (e) => {
@@ -78,44 +87,50 @@ function Login() {
 
       setLoading(true);
 
-      const loginData = {
-        email: formData.email
+      const email =
+        formData.email
           .trim()
-          .toLowerCase(),
+          .toLowerCase();
 
-        password: formData.password
-      };
-
-      console.log(
-        "Login data:",
-        loginData
-      );
+      const password =
+        formData.password;
 
 
-      // -----------------------------------------------------
-      // CALL SPRING BOOT LOGIN API
-      // -----------------------------------------------------
+      // =====================================================
+      // STEP 1
+      // SEND EMAIL + PASSWORD TO SPRING BOOT
+      // =====================================================
 
-      const response = await fetch(
-        "http://localhost:8080/api/auth/login",
-        {
-          method: "POST",
+      const response =
+        await fetch(
+          "http://localhost:8080/api/auth/login",
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type": "application/json"
-          },
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
 
-          body: JSON.stringify(loginData)
-        }
-      );
+            body: JSON.stringify({
+              email: email,
+              password: password
+            })
+          }
+        );
 
 
-      const data = await response.json();
+      // =====================================================
+      // READ BACKEND RESPONSE
+      // =====================================================
+
+      const data =
+        await response.json();
 
 
-      // -----------------------------------------------------
-      // BACKEND ERROR
-      // -----------------------------------------------------
+      // =====================================================
+      // LOGIN ERROR
+      // =====================================================
 
       if (!response.ok) {
 
@@ -128,58 +143,50 @@ function Login() {
       }
 
 
-      console.log(
-        "Login successful:",
-        data
-      );
+      // =====================================================
+      // TWO-STEP AUTHENTICATION
+      // OTP REQUIRED
+      // =====================================================
+
+      if (data.requiresOtp === true) {
+
+        // Remember me
+        if (formData.remember) {
+
+          localStorage.setItem(
+            "rememberMe",
+            "true"
+          );
+
+        } else {
+
+          localStorage.removeItem(
+            "rememberMe"
+          );
+        }
 
 
-      // -----------------------------------------------------
-      // SAVE USER
-      // -----------------------------------------------------
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(data)
-      );
-
-
-      // -----------------------------------------------------
-      // REMEMBER ME
-      // -----------------------------------------------------
-
-      if (formData.remember) {
-
-        localStorage.setItem(
-          "rememberMe",
-          "true"
+        // Go to OTP verification page
+        navigate(
+          "/verify-login-otp",
+          {
+            state: {
+              email: data.email
+            }
+          }
         );
 
-      } else {
-
-        localStorage.removeItem(
-          "rememberMe"
-        );
+        return;
       }
 
 
-      // -----------------------------------------------------
-      // REDIRECT BASED ON ROLE
-      // -----------------------------------------------------
+      // =====================================================
+      // FALLBACK
+      // =====================================================
 
-      if (data.role === "ADMIN") {
-
-        navigate(
-          "/admin/dashboard"
-        );
-
-      } else {
-
-        navigate(
-          "/dashboard"
-        );
-      }
-
+      setError(
+        "Two-step verification could not be started."
+      );
 
     } catch (error) {
 
@@ -189,7 +196,7 @@ function Login() {
       );
 
       setError(
-        "Unable to connect to the server. Please make sure Spring Boot is running on port 8080."
+        "Unable to connect to the server. Please try again."
       );
 
     } finally {
@@ -200,12 +207,10 @@ function Login() {
 
 
   // =========================================================
-  // GOOGLE LOGIN SUCCESS
+  // FIREBASE GOOGLE LOGIN
   // =========================================================
 
-  const handleGoogleSuccess = async (
-    credentialResponse
-  ) => {
+  const handleGoogleLogin = async () => {
 
     try {
 
@@ -214,59 +219,78 @@ function Login() {
       setError("");
 
 
-      // Google returns an ID token/credential
+      // =====================================================
+      // STEP 1
+      // LOGIN USING FIREBASE GOOGLE
+      // =====================================================
 
-      const credential =
-        credentialResponse?.credential;
-
-
-      if (!credential) {
-
-        setError(
-          "Google authentication failed. Please try again."
-        );
-
-        return;
-      }
-
+      const firebaseUser =
+        await loginWithGoogle();
 
       console.log(
-        "Google credential received"
+        "Firebase Google login successful:",
+        firebaseUser
       );
 
 
-      // -----------------------------------------------------
-      // SEND GOOGLE CREDENTIAL TO SPRING BOOT
-      // -----------------------------------------------------
+      // =====================================================
+      // STEP 2
+      // GET FIREBASE ID TOKEN
+      // =====================================================
 
-      const response = await fetch(
-        "http://localhost:8080/api/auth/google",
-        {
-          method: "POST",
+      const idToken =
+        await firebaseUser.getIdToken();
 
-          headers: {
-            "Content-Type": "application/json"
-          },
-
-          body: JSON.stringify({
-            credential: credential
-          })
-        }
+      console.log(
+        "Firebase Google ID token received."
       );
 
 
-      const data = await response.json();
+      // =====================================================
+      // STEP 3
+      // SEND TOKEN TO SPRING BOOT
+      // =====================================================
+
+      const response =
+        await fetch(
+          "http://localhost:8080/api/auth/firebase",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              idToken: idToken,
+
+              name:
+                firebaseUser.displayName ||
+                ""
+            })
+          }
+        );
 
 
-      // -----------------------------------------------------
+      // =====================================================
+      // STEP 4
+      // READ BACKEND RESPONSE
+      // =====================================================
+
+      const data =
+        await response.json();
+
+
+      // =====================================================
       // BACKEND ERROR
-      // -----------------------------------------------------
+      // =====================================================
 
       if (!response.ok) {
 
         setError(
           data.message ||
-          "Google login failed."
+          "Firebase Google authentication failed."
         );
 
         return;
@@ -274,14 +298,15 @@ function Login() {
 
 
       console.log(
-        "Google login successful:",
+        "Firebase Google backend login successful:",
         data
       );
 
 
-      // -----------------------------------------------------
-      // SAVE GOOGLE USER
-      // -----------------------------------------------------
+      // =====================================================
+      // STEP 5
+      // SAVE USER
+      // =====================================================
 
       localStorage.setItem(
         "user",
@@ -289,9 +314,10 @@ function Login() {
       );
 
 
-      // -----------------------------------------------------
-      // REDIRECT
-      // -----------------------------------------------------
+      // =====================================================
+      // STEP 6
+      // REDIRECT BASED ON ROLE
+      // =====================================================
 
       if (data.role === "ADMIN") {
 
@@ -310,34 +336,63 @@ function Login() {
     } catch (error) {
 
       console.error(
-        "Google login error:",
+        "Firebase Google Login Error:",
         error
       );
 
-      setError(
-        "Unable to connect to the server. Please make sure Spring Boot is running on port 8080."
-      );
+
+      // =====================================================
+      // GOOGLE FIREBASE ERROR HANDLING
+      // =====================================================
+
+      if (
+        error.code ===
+        "auth/popup-closed-by-user"
+      ) {
+
+        setError(
+          "Google login was cancelled."
+        );
+
+      } else if (
+        error.code ===
+        "auth/popup-blocked"
+      ) {
+
+        setError(
+          "Google login popup was blocked by the browser."
+        );
+
+      } else if (
+        error.code ===
+        "auth/account-exists-with-different-credential"
+      ) {
+
+        setError(
+          "An account already exists with this email using a different login method."
+        );
+
+      } else if (
+        error.code ===
+        "auth/network-request-failed"
+      ) {
+
+        setError(
+          "Network error. Please check your internet connection."
+        );
+
+      } else {
+
+        setError(
+          error.message ||
+          "Google login failed. Please try again."
+        );
+      }
 
     } finally {
 
       setLoading(false);
     }
-  };
-
-
-  // =========================================================
-  // GOOGLE LOGIN ERROR
-  // =========================================================
-
-  const handleGoogleError = () => {
-
-    console.error(
-      "Google Login Failed"
-    );
-
-    setError(
-      "Google login failed. Please try again."
-    );
   };
 
 
@@ -736,7 +791,7 @@ function Login() {
                       className="loading-spinner"
                     />
 
-                    Signing In...
+                    Sending Verification Code...
 
                   </>
 
@@ -772,32 +827,27 @@ function Login() {
 
 
             {/* =================================================
-                GOOGLE LOGIN
+                FIREBASE GOOGLE LOGIN
             ================================================= */}
 
             <div className="google-login-container">
 
-              <GoogleLogin
-                onSuccess={
-                  handleGoogleSuccess
-                }
+              <button
+                type="button"
+                className="google-login-btn"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+              >
 
-                onError={
-                  handleGoogleError
-                }
+                <span className="google-icon">
+                  G
+                </span>
 
-                useOneTap={false}
+                <span>
+                  Continue with Google
+                </span>
 
-                theme="outline"
-
-                size="large"
-
-                text="continue_with"
-
-                shape="rectangular"
-
-                width="100%"
-              />
+              </button>
 
             </div>
 
@@ -829,3 +879,4 @@ function Login() {
 }
 
 export default Login;
+

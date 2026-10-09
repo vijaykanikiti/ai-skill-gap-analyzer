@@ -34,7 +34,10 @@ public class ResumeController {
     private final String uploadDirectory = "uploads/resumes";
 
 
-    // Constructor
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
+
     public ResumeController(
             ResumeRepository resumeRepository,
             ResumeTextExtractorService resumeTextExtractorService) {
@@ -55,7 +58,11 @@ public class ResumeController {
 
             @RequestParam("file") MultipartFile file,
 
-            @RequestParam("userId") Long userId) {
+            @RequestParam("userId") Long userId,
+
+            @RequestParam("targetRole") String targetRole,
+
+            @RequestParam("location") String location) {
 
         try {
 
@@ -70,6 +77,38 @@ public class ResumeController {
                         .body(Map.of(
                                 "message",
                                 "Please select a resume file"
+                        ));
+            }
+
+
+            // -------------------------------------------------
+            // Check target role
+            // -------------------------------------------------
+
+            if (targetRole == null ||
+                targetRole.trim().isEmpty()) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body(Map.of(
+                                "message",
+                                "Target job role is required"
+                        ));
+            }
+
+
+            // -------------------------------------------------
+            // Check location
+            // -------------------------------------------------
+
+            if (location == null ||
+                location.trim().isEmpty()) {
+
+                return ResponseEntity
+                        .badRequest()
+                        .body(Map.of(
+                                "message",
+                                "Preferred job location is required"
                         ));
             }
 
@@ -159,8 +198,10 @@ public class ResumeController {
             Resume resume =
                     new Resume();
 
+            // User
             resume.setUserId(userId);
 
+            // Resume file details
             resume.setFileName(fileName);
 
             resume.setFileType(
@@ -171,10 +212,24 @@ public class ResumeController {
                     filePath.toString()
             );
 
+            // Career preferences
+            resume.setTargetRole(
+                    targetRole.trim()
+            );
+
+            resume.setLocation(
+                    location.trim()
+            );
+
+            // Upload time
             resume.setUploadedAt(
                     LocalDateTime.now()
             );
 
+
+            // -------------------------------------------------
+            // Save Resume
+            // -------------------------------------------------
 
             Resume savedResume =
                     resumeRepository.save(resume);
@@ -198,7 +253,13 @@ public class ResumeController {
                             savedResume.getFileName(),
 
                             "userId",
-                            savedResume.getUserId()
+                            savedResume.getUserId(),
+
+                            "targetRole",
+                            savedResume.getTargetRole(),
+
+                            "location",
+                            savedResume.getLocation()
 
                     ));
 
@@ -214,6 +275,19 @@ public class ResumeController {
                     .body(Map.of(
                             "message",
                             "Failed to upload resume"
+                    ));
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            return ResponseEntity
+                    .status(
+                            HttpStatus.INTERNAL_SERVER_ERROR
+                    )
+                    .body(Map.of(
+                            "message",
+                            "An unexpected error occurred while uploading resume"
                     ));
         }
     }
@@ -289,6 +363,12 @@ public class ResumeController {
 
                             "fileName",
                             resume.getFileName(),
+
+                            "targetRole",
+                            resume.getTargetRole(),
+
+                            "location",
+                            resume.getLocation(),
 
                             "text",
                             extractedText

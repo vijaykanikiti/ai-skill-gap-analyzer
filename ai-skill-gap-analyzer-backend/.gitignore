@@ -42,3 +42,7 @@ src/main/resources/application.properties
 uploads/
 **/uploads/
 *.pdf
+
+
+# Firebase service account
+firebase-service-account.json

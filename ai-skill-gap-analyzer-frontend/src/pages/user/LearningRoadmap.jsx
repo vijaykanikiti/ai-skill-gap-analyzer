@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import {
   Map,
   Sparkles,
@@ -20,6 +21,7 @@ import {
 import "../../styles/roadmap.css";
 
 function LearningRoadmap() {
+
   const navigate = useNavigate();
 
   const [roadmap, setRoadmap] = useState([]);
@@ -27,108 +29,439 @@ function LearningRoadmap() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // =========================================================
+  // LOAD ROADMAP
+  // =========================================================
+
   useEffect(() => {
     generateRoadmap();
   }, []);
 
+  // =========================================================
+  // GENERATE ROADMAP
+  // =========================================================
+
   const generateRoadmap = async () => {
+
     try {
+
       setLoading(true);
       setError("");
 
-      // Get analysis from localStorage
-      const storedAnalysis = localStorage.getItem("analysis");
+      // -----------------------------------------------------
+      // GET SKILL GAP ANALYSIS
+      // -----------------------------------------------------
+
+      const storedAnalysis =
+        localStorage.getItem("analysis");
 
       if (!storedAnalysis) {
+
         setError(
           "No skill analysis found. Please complete the Skill Gap analysis first."
         );
+
         setLoading(false);
         return;
       }
 
-      const analysisData = JSON.parse(storedAnalysis);
+      let analysisData;
 
-      if (!analysisData.analysisId) {
-        setError(
-          "Analysis ID is missing. Please complete the Skill Gap analysis again."
+      try {
+
+        analysisData =
+          JSON.parse(storedAnalysis);
+
+      } catch (parseError) {
+
+        console.error(
+          "Analysis JSON error:",
+          parseError
         );
+
+        setError(
+          "Invalid skill analysis data. Please complete the Skill Gap analysis again."
+        );
+
         setLoading(false);
         return;
       }
 
-      setAnalysis(analysisData);
-
-      // Call Spring Boot backend
-      const response = await fetch(
-        `http://localhost:8080/api/analysis/roadmap/${analysisData.analysisId}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          }
-        }
+      console.log(
+        "===================================="
       );
 
+      console.log(
+        "Stored Analysis:",
+        analysisData
+      );
+
+      console.log(
+        "===================================="
+      );
+
+      // -----------------------------------------------------
+      // RESUME ID
+      // -----------------------------------------------------
+
+      if (!analysisData.resumeId) {
+
+        setError(
+          "Resume ID is missing. Please complete the Resume Analysis again."
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      // -----------------------------------------------------
+      // USER ID
+      // -----------------------------------------------------
+
+      const storedUser =
+        localStorage.getItem("user");
+
+      let userId =
+        analysisData.userId;
+
+      if (!userId && storedUser) {
+
+        try {
+
+          const userData =
+            JSON.parse(storedUser);
+
+          userId =
+            userData.id ||
+            userData.userId;
+
+        } catch (userError) {
+
+          console.error(
+            "User JSON error:",
+            userError
+          );
+        }
+      }
+
+      if (!userId) {
+
+        setError(
+          "User ID is missing. Please login again."
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      // -----------------------------------------------------
+      // MISSING SKILLS
+      // -----------------------------------------------------
+
+      let missingSkills =
+        analysisData.missingSkills || [];
+
+      /*
+       * Backend can return:
+       *
+       * [
+       *   "Spring Boot",
+       *   "Docker"
+       * ]
+       *
+       * OR:
+       *
+       * [
+       *   { skillName: "Spring Boot" },
+       *   { skillName: "Docker" }
+       * ]
+       *
+       * OR:
+       *
+       * "Spring Boot,Docker"
+       */
+
+      if (
+        Array.isArray(
+          missingSkills
+        )
+      ) {
+
+        missingSkills =
+          missingSkills
+            .map(
+              (skill) => {
+
+                if (
+                  typeof skill ===
+                  "string"
+                ) {
+                  return skill;
+                }
+
+                if (
+                  typeof skill ===
+                    "object" &&
+                  skill !== null
+                ) {
+
+                  return (
+                    skill.skillName ||
+                    skill.name ||
+                    skill.skill ||
+                    ""
+                  );
+                }
+
+                return "";
+              }
+            )
+            .filter(
+              Boolean
+            )
+            .join(",");
+
+      } else if (
+        typeof missingSkills !==
+        "string"
+      ) {
+
+        missingSkills =
+          String(
+            missingSkills || ""
+          );
+      }
+
+      // -----------------------------------------------------
+      // NO MISSING SKILLS
+      // -----------------------------------------------------
+
+      if (
+        !missingSkills.trim()
+      ) {
+
+        setAnalysis(
+          analysisData
+        );
+
+        setRoadmap([]);
+
+        setError(
+          "No missing skills were found. Your resume already matches the required skills."
+        );
+
+        setLoading(false);
+        return;
+      }
+
+      // -----------------------------------------------------
+      // SAVE ANALYSIS
+      // -----------------------------------------------------
+
+      setAnalysis(
+        analysisData
+      );
+
+      // -----------------------------------------------------
+      // DEBUG
+      // -----------------------------------------------------
+
+      console.log(
+        "Resume ID:",
+        analysisData.resumeId
+      );
+
+      console.log(
+        "User ID:",
+        userId
+      );
+
+      console.log(
+        "Missing Skills:",
+        missingSkills
+      );
+
+      console.log(
+        "Target Role:",
+        analysisData.targetRole
+      );
+
+      console.log(
+        "Location:",
+        analysisData.location
+      );
+
+      // -----------------------------------------------------
+      // BUILD REQUEST PARAMETERS
+      // -----------------------------------------------------
+
+      const params =
+        new URLSearchParams();
+
+      params.append(
+        "resumeId",
+        analysisData.resumeId
+      );
+
+      params.append(
+        "userId",
+        userId
+      );
+
+      params.append(
+        "missingSkills",
+        missingSkills
+      );
+
+      // -----------------------------------------------------
+      // API URL
+      // -----------------------------------------------------
+
+      const apiUrl =
+        `http://localhost:8080/api/roadmap/generate?${params.toString()}`;
+
+      console.log(
+        "Roadmap API URL:",
+        apiUrl
+      );
+
+      // -----------------------------------------------------
+      // CALL SPRING BOOT
+      // -----------------------------------------------------
+
+      const response =
+        await fetch(
+          apiUrl,
+          {
+            method: "POST"
+          }
+        );
+
+      // -----------------------------------------------------
+      // ERROR RESPONSE
+      // -----------------------------------------------------
+
       if (!response.ok) {
-        const errorText = await response.text();
+
+        const errorText =
+          await response.text();
+
+        console.error(
+          "Roadmap API Error:",
+          errorText
+        );
+
         throw new Error(
-          errorText || "Failed to generate learning roadmap."
+          errorText ||
+          "Failed to generate learning roadmap."
         );
       }
 
-      const data = await response.json();
+      // -----------------------------------------------------
+      // RESPONSE
+      // -----------------------------------------------------
 
-      console.log("Roadmap API Response:", data);
+      const data =
+        await response.json();
 
-      /*
-       * Backend normally returns an array.
-       * This code also supports:
-       * { roadmap: [...] }
-       * { data: [...] }
-       */
+      console.log(
+        "===================================="
+      );
+
+      console.log(
+        "Learning Roadmap API Response:",
+        data
+      );
+
+      console.log(
+        "===================================="
+      );
+
+      // -----------------------------------------------------
+      // HANDLE RESPONSE
+      // -----------------------------------------------------
 
       let roadmapData = [];
 
-      if (Array.isArray(data)) {
-        roadmapData = data;
-      } else if (Array.isArray(data.roadmap)) {
-        roadmapData = data.roadmap;
-      } else if (Array.isArray(data.data)) {
-        roadmapData = data.data;
+      if (
+        Array.isArray(data)
+      ) {
+
+        roadmapData =
+          data;
+
+      } else if (
+        Array.isArray(
+          data.roadmap
+        )
+      ) {
+
+        roadmapData =
+          data.roadmap;
+
+      } else if (
+        Array.isArray(
+          data.data
+        )
+      ) {
+
+        roadmapData =
+          data.data;
+
       }
 
-      setRoadmap(roadmapData);
+      // -----------------------------------------------------
+      // SAVE ROADMAP
+      // -----------------------------------------------------
 
-      // Save roadmap for next pages
+      setRoadmap(
+        roadmapData
+      );
+
       localStorage.setItem(
         "roadmap",
-        JSON.stringify(roadmapData)
+        JSON.stringify(
+          roadmapData
+        )
       );
 
     } catch (err) {
-      console.error("Roadmap error:", err);
+
+      console.error(
+        "Learning Roadmap Error:",
+        err
+      );
 
       setError(
-        err.message || "Unable to generate learning roadmap."
+        err.message ||
+        "Unable to generate learning roadmap."
       );
+
     } finally {
+
       setLoading(false);
     }
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // ICON
-  // --------------------------------------------------
+  // =========================================================
 
-  const getIcon = (skillName) => {
-    const skill = String(skillName || "").toLowerCase();
+  const getIcon = (
+    skillName
+  ) => {
+
+    const skill =
+      String(
+        skillName || ""
+      ).toLowerCase();
 
     if (
       skill.includes("aws") ||
       skill.includes("cloud") ||
       skill.includes("azure")
     ) {
+
       return Cloud;
     }
 
@@ -136,6 +469,7 @@ function LearningRoadmap() {
       skill.includes("docker") ||
       skill.includes("container")
     ) {
+
       return Container;
     }
 
@@ -144,6 +478,7 @@ function LearningRoadmap() {
       skill.includes("javascript") ||
       skill.includes("frontend")
     ) {
+
       return Code2;
     }
 
@@ -151,19 +486,24 @@ function LearningRoadmap() {
       skill.includes("system") ||
       skill.includes("architecture") ||
       skill.includes("machine") ||
-      skill.includes("ai")
+      skill.includes("ai") ||
+      skill.includes("tensorflow")
     ) {
+
       return BrainCircuit;
     }
 
     return BookOpen;
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // COLOR
-  // --------------------------------------------------
+  // =========================================================
 
-  const getColor = (index) => {
+  const getColor = (
+    index
+  ) => {
+
     const colors = [
       "primary",
       "warning",
@@ -171,14 +511,20 @@ function LearningRoadmap() {
       "success"
     ];
 
-    return colors[index % colors.length];
+    return colors[
+      index %
+      colors.length
+    ];
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // SKILL NAME
-  // --------------------------------------------------
+  // =========================================================
 
-  const getSkillName = (item) => {
+  const getSkillName = (
+    item
+  ) => {
+
     return (
       item.skillName ||
       item.skill ||
@@ -188,122 +534,205 @@ function LearningRoadmap() {
     );
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // DESCRIPTION
-  // --------------------------------------------------
+  // =========================================================
 
-  const getDescription = (item) => {
+  const getDescription = (
+    item
+  ) => {
+
+    if (
+      item.description
+    ) {
+
+      return item.description;
+    }
+
+    if (
+      item.subtitle
+    ) {
+
+      return item.subtitle;
+    }
+
+    if (
+      item.projectSuggestion
+    ) {
+
+      return `Build a project: ${item.projectSuggestion}`;
+    }
+
     return (
-      item.description ||
-      item.subtitle ||
       `Improve your ${getSkillName(
         item
-      )} skills to become more job-ready.`
+      )} skills to become job-ready.`
     );
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // DURATION
-  // --------------------------------------------------
+  // =========================================================
 
-  const getDuration = (item) => {
-    if (item.duration) {
+  const getDuration = (
+    item
+  ) => {
+
+    if (
+      item.duration
+    ) {
+
       return item.duration;
     }
 
-    if (item.estimatedDays) {
+    if (
+      item.estimatedDays
+    ) {
+
       return `${item.estimatedDays} days`;
     }
 
     return "2 weeks";
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // TOPICS
-  // FIX: topics.map is not a function
-  // --------------------------------------------------
+  // =========================================================
 
-  const getTopics = (item) => {
+  const getTopics = (
+    item
+  ) => {
+
     const rawTopics =
       item.topics ||
       item.subtopics ||
       item.skills ||
       [];
 
-    // Backend returned an array
-    if (Array.isArray(rawTopics)) {
+    // Array
+    if (
+      Array.isArray(
+        rawTopics
+      )
+    ) {
+
       return rawTopics;
     }
 
-    // Backend returned a string
-    if (typeof rawTopics === "string") {
+    // String
+    if (
+      typeof rawTopics ===
+      "string"
+    ) {
+
       return rawTopics
         .split(",")
-        .map((topic) => topic.trim())
-        .filter(Boolean);
+        .map(
+          (topic) =>
+            topic.trim()
+        )
+        .filter(
+          Boolean
+        );
     }
 
-    // Backend returned an object
+    // Object
     if (
-      typeof rawTopics === "object" &&
+      typeof rawTopics ===
+        "object" &&
       rawTopics !== null
     ) {
-      return Object.values(rawTopics);
+
+      return Object.values(
+        rawTopics
+      );
     }
 
     return [];
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // PROGRESS
-  // --------------------------------------------------
+  // =========================================================
 
-  const getItemProgress = (item) => {
+  const getItemProgress = (
+    item
+  ) => {
+
     const progress =
       item.progressPercentage ??
       item.progress ??
       0;
 
-    const numericProgress = Number(progress);
+    const numericProgress =
+      Number(
+        progress
+      );
 
-    if (Number.isNaN(numericProgress)) {
+    if (
+      Number.isNaN(
+        numericProgress
+      )
+    ) {
+
       return 0;
     }
 
     return Math.min(
       100,
-      Math.max(0, numericProgress)
+      Math.max(
+        0,
+        numericProgress
+      )
     );
   };
 
-  // --------------------------------------------------
+  // =========================================================
   // OVERALL PROGRESS
-  // --------------------------------------------------
+  // =========================================================
 
-  const getOverallProgress = () => {
-    if (roadmap.length === 0) {
-      return 0;
-    }
+  const getOverallProgress =
+    () => {
 
-    const total = roadmap.reduce(
-      (sum, item) =>
-        sum + getItemProgress(item),
-      0
-    );
+      if (
+        roadmap.length === 0
+      ) {
 
-    return Math.round(
-      total / roadmap.length
-    );
-  };
+        return 0;
+      }
+
+      const total =
+        roadmap.reduce(
+          (
+            sum,
+            item
+          ) => {
+
+            return (
+              sum +
+              getItemProgress(
+                item
+              )
+            );
+          },
+          0
+        );
+
+      return Math.round(
+        total /
+        roadmap.length
+      );
+    };
 
   const overallProgress =
     getOverallProgress();
 
-  // --------------------------------------------------
+  // =========================================================
   // LOADING
-  // --------------------------------------------------
+  // =========================================================
 
   if (loading) {
+
     return (
       <div className="roadmap-page">
 
@@ -329,7 +758,6 @@ function LearningRoadmap() {
           </div>
 
         </div>
-
 
         <div
           style={{
@@ -362,11 +790,12 @@ function LearningRoadmap() {
     );
   }
 
-  // --------------------------------------------------
+  // =========================================================
   // ERROR
-  // --------------------------------------------------
+  // =========================================================
 
   if (error) {
+
     return (
       <div className="roadmap-page">
 
@@ -392,7 +821,6 @@ function LearningRoadmap() {
 
         </div>
 
-
         <div
           style={{
             padding: "40px",
@@ -403,7 +831,8 @@ function LearningRoadmap() {
           <AlertTriangle
             size={45}
             style={{
-              marginBottom: "15px"
+              marginBottom:
+                "15px"
             }}
           />
 
@@ -415,20 +844,24 @@ function LearningRoadmap() {
             {error}
           </p>
 
-
           <button
             className="roadmap-primary-btn"
             onClick={() =>
-              navigate("/skill-gap")
+              navigate(
+                "/skill-gap"
+              )
             }
             style={{
-              marginTop: "20px"
+              marginTop:
+                "20px"
             }}
           >
 
             Go to Skill Gap
 
-            <ArrowRight size={17} />
+            <ArrowRight
+              size={17}
+            />
 
           </button>
 
@@ -438,14 +871,16 @@ function LearningRoadmap() {
     );
   }
 
-  // --------------------------------------------------
+  // =========================================================
   // MAIN PAGE
-  // --------------------------------------------------
+  // =========================================================
 
   return (
     <div className="roadmap-page">
 
-      {/* PAGE HEADER */}
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
 
       <div className="roadmap-header">
 
@@ -462,16 +897,18 @@ function LearningRoadmap() {
           </div>
 
           <p>
-            Follow your personalized learning
-            path to become job-ready.
+            Follow your personalized
+            learning path to become
+            job-ready.
           </p>
 
         </div>
 
-
         <div className="roadmap-ai-badge">
 
-          <Sparkles size={16} />
+          <Sparkles
+            size={16}
+          />
 
           Personalized
 
@@ -479,8 +916,9 @@ function LearningRoadmap() {
 
       </div>
 
-
-      {/* ROADMAP SUMMARY */}
+      {/* =====================================================
+          SUMMARY
+      ===================================================== */}
 
       <div className="roadmap-summary">
 
@@ -488,10 +926,11 @@ function LearningRoadmap() {
 
           <div className="summary-icon">
 
-            <Target size={22} />
+            <Target
+              size={22}
+            />
 
           </div>
-
 
           <div>
 
@@ -509,10 +948,20 @@ function LearningRoadmap() {
               on your resume and skill gaps.
             </p>
 
+            {analysis?.location && (
+
+              <p>
+                Location:{" "}
+                <strong>
+                  {analysis.location}
+                </strong>
+              </p>
+
+            )}
+
           </div>
 
         </div>
-
 
         <div className="roadmap-summary-stats">
 
@@ -528,7 +977,6 @@ function LearningRoadmap() {
 
           </div>
 
-
           <div>
 
             <strong>
@@ -540,7 +988,6 @@ function LearningRoadmap() {
             </span>
 
           </div>
-
 
           <div>
 
@@ -558,8 +1005,9 @@ function LearningRoadmap() {
 
       </div>
 
-
-      {/* OVERALL PROGRESS */}
+      {/* =====================================================
+          OVERALL PROGRESS
+      ===================================================== */}
 
       <div className="roadmap-progress-card">
 
@@ -578,25 +1026,23 @@ function LearningRoadmap() {
 
           </div>
 
-
           <strong>
             {overallProgress}%
           </strong>
 
         </div>
 
-
         <div className="roadmap-progress-track">
 
           <div
             className="roadmap-progress-fill"
             style={{
-              width: `${overallProgress}%`
+              width:
+                `${overallProgress}%`
             }}
           />
 
         </div>
-
 
         <div className="progress-footer">
 
@@ -612,8 +1058,9 @@ function LearningRoadmap() {
 
       </div>
 
-
-      {/* ROADMAP */}
+      {/* =====================================================
+          ROADMAP SECTION
+      ===================================================== */}
 
       <section className="roadmap-section">
 
@@ -623,7 +1070,9 @@ function LearningRoadmap() {
 
             <h3>
 
-              <BookOpen size={19} />
+              <BookOpen
+                size={19}
+              />
 
               Your Personalized Learning Path
 
@@ -638,20 +1087,22 @@ function LearningRoadmap() {
 
         </div>
 
-
         {roadmap.length === 0 ? (
 
           <div
             style={{
-              padding: "40px",
-              textAlign: "center"
+              padding:
+                "40px",
+              textAlign:
+                "center"
             }}
           >
 
             <BookOpen
               size={42}
               style={{
-                marginBottom: "15px"
+                marginBottom:
+                  "15px"
               }}
             />
 
@@ -671,19 +1122,30 @@ function LearningRoadmap() {
           <div className="roadmap-list">
 
             {roadmap.map(
-              (item, index) => {
+              (
+                item,
+                index
+              ) => {
 
                 const skillName =
-                  getSkillName(item);
+                  getSkillName(
+                    item
+                  );
 
                 const Icon =
-                  getIcon(skillName);
+                  getIcon(
+                    skillName
+                  );
 
                 const color =
-                  getColor(index);
+                  getColor(
+                    index
+                  );
 
                 const progress =
-                  getItemProgress(item);
+                  getItemProgress(
+                    item
+                  );
 
                 const status =
                   item.status ||
@@ -693,9 +1155,10 @@ function LearningRoadmap() {
                       : "Upcoming"
                   );
 
-                // SAFE TOPICS
                 const topics =
-                  getTopics(item);
+                  getTopics(
+                    item
+                  );
 
                 return (
 
@@ -717,22 +1180,23 @@ function LearningRoadmap() {
                         {index + 1}
                       </div>
 
-
                       {index !==
-                        roadmap.length - 1 && (
+                        roadmap.length -
+                        1 && (
+
                         <div
                           className="timeline-line"
                         />
+
                       )}
 
                     </div>
-
 
                     {/* CARD */}
 
                     <div className="roadmap-card">
 
-                      {/* TOP */}
+                      {/* CARD TOP */}
 
                       <div className="roadmap-card-top">
 
@@ -741,9 +1205,12 @@ function LearningRoadmap() {
                           <div
                             className={`roadmap-icon ${color}`}
                           >
-                            <Icon size={21} />
-                          </div>
 
+                            <Icon
+                              size={21}
+                            />
+
+                          </div>
 
                           <div>
 
@@ -752,7 +1219,6 @@ function LearningRoadmap() {
                               <h4>
                                 {skillName}
                               </h4>
-
 
                               <span
                                 className={`roadmap-status ${String(
@@ -769,7 +1235,6 @@ function LearningRoadmap() {
 
                             </div>
 
-
                             <p>
                               {getDescription(
                                 item
@@ -780,17 +1245,69 @@ function LearningRoadmap() {
 
                         </div>
 
-
                         <div className="roadmap-duration">
 
-                          <Clock3 size={15} />
+                          <Clock3
+                            size={15}
+                          />
 
-                          {getDuration(item)}
+                          {getDuration(
+                            item
+                          )}
 
                         </div>
 
                       </div>
 
+                      {/* LEVEL */}
+
+                      {item.level && (
+
+                        <div
+                          style={{
+                            marginTop:
+                              "14px"
+                          }}
+                        >
+
+                          <strong>
+                            Level:
+                          </strong>{" "}
+
+                          <span>
+                            {item.level}
+                          </span>
+
+                        </div>
+
+                      )}
+
+                      {/* PROJECT */}
+
+                      {item.projectSuggestion && (
+
+                        <div
+                          style={{
+                            marginTop:
+                              "14px",
+                            padding:
+                              "12px 14px",
+                            borderRadius:
+                              "10px",
+                            background:
+                              "var(--card-secondary, #f8fafc)"
+                          }}
+                        >
+
+                          <strong>
+                            Recommended Project:
+                          </strong>{" "}
+
+                          {item.projectSuggestion}
+
+                        </div>
+
+                      )}
 
                       {/* PROGRESS */}
 
@@ -808,13 +1325,13 @@ function LearningRoadmap() {
 
                         </div>
 
-
                         <div className="roadmap-small-track">
 
                           <div
                             className={`roadmap-small-fill ${color}`}
                             style={{
-                              width: `${progress}%`
+                              width:
+                                `${progress}%`
                             }}
                           />
 
@@ -822,17 +1339,16 @@ function LearningRoadmap() {
 
                       </div>
 
-
                       {/* TOPICS */}
 
-                      {topics.length > 0 && (
+                      {topics.length >
+                        0 && (
 
                         <div className="roadmap-topics">
 
                           <span>
                             Topics:
                           </span>
-
 
                           <div className="topic-list">
 
@@ -850,15 +1366,21 @@ function LearningRoadmap() {
 
                                   {typeof topic ===
                                   "string"
+
                                     ? topic
+
                                     : typeof topic ===
                                         "object" &&
                                       topic !==
                                         null
-                                    ? topic.name ||
+
+                                    ? (
+                                      topic.name ||
                                       topic.title ||
                                       topic.topic ||
                                       "Topic"
+                                    )
+
                                     : String(
                                         topic
                                       )}
@@ -874,14 +1396,15 @@ function LearningRoadmap() {
 
                       )}
 
-
                       {/* BOTTOM */}
 
                       <div className="roadmap-card-bottom">
 
                         <div className="roadmap-learning-info">
 
-                          {progress > 0 ? (
+                          {progress >
+                          0 ? (
+
                             <>
                               <CheckCircle2
                                 size={15}
@@ -890,7 +1413,9 @@ function LearningRoadmap() {
                               Continue your
                               learning
                             </>
+
                           ) : (
+
                             <>
                               <PlayCircle
                                 size={15}
@@ -898,10 +1423,10 @@ function LearningRoadmap() {
 
                               Ready to start
                             </>
+
                           )}
 
                         </div>
-
 
                         <button
                           className="start-learning-btn"
@@ -912,8 +1437,11 @@ function LearningRoadmap() {
                           }
                         >
 
-                          {progress > 0
+                          {progress >
+                          0
+
                             ? "Continue Learning"
+
                             : "Start Learning"}
 
                           <ArrowRight
@@ -938,24 +1466,25 @@ function LearningRoadmap() {
 
       </section>
 
-
-      {/* AI RECOMMENDATION */}
+      {/* =====================================================
+          AI RECOMMENDATION
+      ===================================================== */}
 
       <div className="roadmap-ai-card">
 
         <div className="roadmap-ai-icon">
 
-          <Sparkles size={23} />
+          <Sparkles
+            size={23}
+          />
 
         </div>
-
 
         <div className="roadmap-ai-content">
 
           <h3>
             Learning Recommendation
           </h3>
-
 
           <p>
 
@@ -964,51 +1493,85 @@ function LearningRoadmap() {
             during your resume and target-role
             analysis.
 
-            {analysis?.missingSkills?.length >
-              0 && (
+            {analysis?.missingSkills && (
+
               <>
+
                 {" "}
                 Your current priority skills
-                include
+                include{" "}
 
                 <strong>
 
-                  {" "}
-                  {analysis.missingSkills
-                    .slice(0, 3)
-                    .join(", ")}
+                  {Array.isArray(
+                    analysis.missingSkills
+                  )
+
+                    ? analysis.missingSkills
+                        .slice(
+                          0,
+                          3
+                        )
+                        .map(
+                          (
+                            skill
+                          ) =>
+                            typeof skill ===
+                            "string"
+
+                              ? skill
+
+                              : (
+                                skill.skillName ||
+                                skill.name ||
+                                skill.skill ||
+                                ""
+                              )
+                        )
+                        .filter(
+                          Boolean
+                        )
+                        .join(
+                          ", "
+                        )
+
+                    : analysis.missingSkills}
 
                 </strong>.
 
               </>
+
             )}
 
           </p>
-
 
           <div className="ai-roadmap-points">
 
             <span>
 
-              <CheckCircle2 size={15} />
+              <CheckCircle2
+                size={15}
+              />
 
               Practice with real projects
 
             </span>
 
-
             <span>
 
-              <CheckCircle2 size={15} />
+              <CheckCircle2
+                size={15}
+              />
 
               Complete one skill at a time
 
             </span>
 
-
             <span>
 
-              <CheckCircle2 size={15} />
+              <CheckCircle2
+                size={15}
+              />
 
               Track your progress regularly
 
@@ -1020,15 +1583,18 @@ function LearningRoadmap() {
 
       </div>
 
-
-      {/* BOTTOM ACTIONS */}
+      {/* =====================================================
+          BOTTOM ACTIONS
+      ===================================================== */}
 
       <div className="roadmap-bottom-actions">
 
         <button
           className="roadmap-secondary-btn"
           onClick={() =>
-            navigate("/skill-gap")
+            navigate(
+              "/skill-gap"
+            )
           }
         >
 
@@ -1044,17 +1610,20 @@ function LearningRoadmap() {
 
         </button>
 
-
         <button
           className="roadmap-primary-btn"
           onClick={() =>
-            navigate("/recommendations")
+            navigate(
+              "/recommendations"
+            )
           }
         >
 
           Explore Recommendations
 
-          <ArrowRight size={17} />
+          <ArrowRight
+            size={17}
+          />
 
         </button>
 

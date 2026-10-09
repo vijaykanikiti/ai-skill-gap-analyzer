@@ -579,3 +579,90 @@
   }
 
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* ==========================================
+   PREFERRED JOB LOCATION
+========================================== */
+
+.location-section {
+  margin-top: 35px;
+  padding: 25px;
+  border-radius: 18px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.location-section .section-heading {
+  margin-bottom: 20px;
+}
+
+.location-section .section-heading h3 {
+  margin: 0 0 8px;
+  color: var(--text-primary, #111827);
+}
+
+.location-section .section-heading p {
+  margin: 0;
+  color: var(--text-secondary, #6b7280);
+}
+
+.location-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.location-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 15px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #d1d5db);
+  background: var(--input-bg, #ffffff);
+  color: var(--text-primary, #111827);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.location-card:hover {
+  border-color: #6366f1;
+  transform: translateY(-2px);
+}
+
+.location-card.selected {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+.location-selected-icon {
+  margin-left: auto;
+}
+
+@media (max-width: 900px) {
+  .location-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .location-grid {
+    grid-template-columns: 1fr;
+  }
+}

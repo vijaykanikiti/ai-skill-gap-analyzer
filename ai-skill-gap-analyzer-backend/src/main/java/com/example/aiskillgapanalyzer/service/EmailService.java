@@ -1,3 +1,4 @@
+
 package com.example.aiskillgapanalyzer.service;
 
 import java.time.LocalDateTime;
@@ -25,22 +26,19 @@ public class EmailService {
     }
 
     // =========================================================
-    // SEND OTP
+    // PASSWORD RESET - SEND OTP
     // =========================================================
 
     public void sendPasswordResetOtp(String email) {
 
-        // Generate 6 digit OTP
         String otp = String.format(
                 "%06d",
                 new Random().nextInt(1000000)
         );
 
-        // OTP expires after 5 minutes
         LocalDateTime expiryTime =
                 LocalDateTime.now().plusMinutes(5);
 
-        // Save OTP in database
         PasswordResetToken token =
                 new PasswordResetToken();
 
@@ -51,7 +49,6 @@ public class EmailService {
 
         tokenRepository.save(token);
 
-        // Create email
         SimpleMailMessage message =
                 new SimpleMailMessage();
 
@@ -74,7 +71,51 @@ public class EmailService {
                 + "SkillGap AI Team"
         );
 
-        // Send email
+        mailSender.send(message);
+    }
+
+
+    // =========================================================
+    // TWO-STEP AUTHENTICATION - SEND LOGIN OTP
+    // =========================================================
+
+    public String generateLoginOtp() {
+
+        return String.format(
+                "%06d",
+                new Random().nextInt(1000000)
+        );
+    }
+
+
+    // =========================================================
+    // TWO-STEP AUTHENTICATION - SEND OTP EMAIL
+    // =========================================================
+
+    public void sendLoginOtp(String email, String otp) {
+
+        SimpleMailMessage message =
+                new SimpleMailMessage();
+
+        message.setTo(email);
+
+        message.setSubject(
+                "SkillGap AI - Login Verification OTP"
+        );
+
+        message.setText(
+                "Hello,\n\n"
+                + "Your SkillGap AI login verification OTP is:\n\n"
+                + otp
+                + "\n\n"
+                + "This OTP is valid for 5 minutes.\n\n"
+                + "If you did not try to login to your account, "
+                + "please ignore this email.\n\n"
+                + "Regards,\n"
+                + "SkillGap AI Team"
+        );
+
         mailSender.send(message);
     }
 }
+

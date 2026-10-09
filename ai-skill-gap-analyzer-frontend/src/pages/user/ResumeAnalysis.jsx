@@ -53,7 +53,9 @@ function ResumeAnalysis() {
 
     if (!storedUser) {
 
-      setError("User information not found. Please login again.");
+      setError(
+        "User information not found. Please login again."
+      );
 
       setLoading(false);
 
@@ -63,7 +65,9 @@ function ResumeAnalysis() {
 
     if (!storedResume) {
 
-      setError("Resume information not found. Please upload your resume again.");
+      setError(
+        "Resume information not found. Please upload your resume again."
+      );
 
       setLoading(false);
 
@@ -73,7 +77,9 @@ function ResumeAnalysis() {
 
     if (!storedJobRole) {
 
-      setError("Target job role not selected. Please select a target job role.");
+      setError(
+        "Target job role not selected. Please select a target job role."
+      );
 
       setLoading(false);
 
@@ -131,14 +137,21 @@ function ResumeAnalysis() {
     try {
 
       setLoading(true);
-
       setError("");
 
+
+      // ==========================================
+      // GET RESUME ID
+      // ==========================================
 
       const resumeId =
         resumeData.resumeId ||
         resumeData.id;
 
+
+      // ==========================================
+      // GET JOB ROLE ID
+      // ==========================================
 
       const jobRoleId =
         jobRoleData.jobRoleId ||
@@ -172,13 +185,24 @@ function ResumeAnalysis() {
       );
 
 
+      // ==========================================
+      // CALL SKILL GAP API
+      // ==========================================
+
       const response = await fetch(
-        `http://localhost:8080/api/analysis/analyze/${resumeId}?jobRoleId=${jobRoleId}`,
+        `http://localhost:8080/api/skill-gap/analyze/${resumeId}/${jobRoleId}`,
         {
-          method: "POST"
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          }
         }
       );
 
+
+      // ==========================================
+      // READ RESPONSE
+      // ==========================================
 
       const data =
         await response.json();
@@ -188,21 +212,24 @@ function ResumeAnalysis() {
 
         throw new Error(
           data.message ||
+          data.error ||
           "Resume analysis failed."
         );
       }
 
 
       console.log(
-        "Analysis Result:",
+        "Skill Gap Analysis Result:",
         data
       );
 
 
+      // ==========================================
+      // SAVE ANALYSIS RESULT
+      // ==========================================
+
       setAnalysisData(data);
 
-
-      // Save analysis result
       localStorage.setItem(
         "analysis",
         JSON.stringify(data)
@@ -334,7 +361,9 @@ function ResumeAnalysis() {
               }
             >
               Select Target Role
+
               <ArrowRight size={18} />
+
             </button>
 
           </div>
@@ -364,11 +393,22 @@ function ResumeAnalysis() {
     analysisData?.missingSkills || [];
 
 
+  const requiredSkills =
+    analysisData?.requiredSkills || [];
+
+
+  const learningRecommendations =
+    analysisData?.learningRecommendations || [];
+
+
   const matchPercentage =
     analysisData?.matchPercentage ?? 0;
 
 
-  // Create technical skill list
+  // ==========================================
+  // TECHNICAL SKILLS
+  // ==========================================
+
   const technicalSkills =
     detectedSkills.map((skill) => {
 
@@ -388,7 +428,10 @@ function ResumeAnalysis() {
     });
 
 
-  // Soft skills
+  // ==========================================
+  // SOFT SKILLS
+  // ==========================================
+
   const softSkills = [
     "Problem Solving",
     "Communication",
@@ -397,6 +440,10 @@ function ResumeAnalysis() {
     "Adaptability"
   ];
 
+
+  // ==========================================
+  // RETURN UI
+  // ==========================================
 
   return (
 
@@ -483,7 +530,9 @@ function ResumeAnalysis() {
 
               <MapPin size={15} />
 
-              {user?.location ||
+              {analysisData?.location ||
+                resume?.location ||
+                user?.location ||
                 "Location not available"}
 
             </span>
@@ -493,8 +542,9 @@ function ResumeAnalysis() {
 
               <Briefcase size={15} />
 
-              {selectedJobRole?.roleName ||
-                analysisData?.targetRole ||
+              {analysisData?.targetRole ||
+                selectedJobRole?.roleName ||
+                resume?.targetRole ||
                 "Target role"}
 
             </span>
@@ -579,6 +629,68 @@ function ResumeAnalysis() {
           </strong>.
 
         </p>
+
+      </section>
+
+
+      {/* ======================================
+          REQUIRED SKILLS
+      ====================================== */}
+
+      <section className="analysis-card">
+
+        <div className="card-heading">
+
+          <div className="heading-icon">
+
+            <Code2 size={20} />
+
+          </div>
+
+
+          <div>
+
+            <h3>
+              Required Skills
+            </h3>
+
+            <p>
+              Skills required for your selected job role
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div className="soft-skills">
+
+          {requiredSkills.length === 0 ? (
+
+            <span>
+              No required skills found for this job role.
+            </span>
+
+          ) : (
+
+            requiredSkills.map((skill) => (
+
+              <span
+                className="soft-skill"
+                key={skill}
+              >
+
+                <Code2 size={15} />
+
+                {skill}
+
+              </span>
+
+            ))
+
+          )}
+
+        </div>
 
       </section>
 
@@ -723,7 +835,7 @@ function ResumeAnalysis() {
 
 
       {/* ======================================
-          REQUIRED SKILLS
+          SKILL GAP
       ====================================== */}
 
       <section className="analysis-card">
@@ -757,6 +869,7 @@ function ResumeAnalysis() {
         <div style={{ marginBottom: "25px" }}>
 
           <h4>
+
             <CheckCircle
               size={17}
               style={{
@@ -766,6 +879,7 @@ function ResumeAnalysis() {
             />
 
             Matched Skills
+
           </h4>
 
 
@@ -838,6 +952,91 @@ function ResumeAnalysis() {
             )}
 
           </div>
+
+        </div>
+
+      </section>
+
+
+      {/* ======================================
+          WHAT YOU SHOULD LEARN
+      ====================================== */}
+
+      <section className="analysis-card">
+
+        <div className="card-heading">
+
+          <div className="heading-icon">
+
+            <Sparkles size={20} />
+
+          </div>
+
+
+          <div>
+
+            <h3>
+              What You Should Learn
+            </h3>
+
+            <p>
+              Personalized recommendations based on your skill gaps
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div className="learning-recommendations">
+
+          {learningRecommendations.length === 0 ? (
+
+            <div className="recommendation-empty">
+
+              <CheckCircle size={20} />
+
+              <p>
+                No additional learning recommendations available.
+              </p>
+
+            </div>
+
+          ) : (
+
+            learningRecommendations.map(
+              (recommendation, index) => (
+
+                <div
+                  className="learning-recommendation"
+                  key={index}
+                >
+
+                  <div className="recommendation-number">
+
+                    {index + 1}
+
+                  </div>
+
+
+                  <div className="recommendation-content">
+
+                    <h4>
+                      Recommended Learning
+                    </h4>
+
+                    <p>
+                      {recommendation}
+                    </p>
+
+                  </div>
+
+                </div>
+
+              )
+            )
+
+          )}
 
         </div>
 
@@ -1005,7 +1204,7 @@ function ResumeAnalysis() {
 
 
       {/* ======================================
-          AI INSIGHT
+          CAREER INSIGHT
       ====================================== */}
 
       <section className="ai-insight-card">
@@ -1037,7 +1236,9 @@ function ResumeAnalysis() {
               of the required skills for{" "}
 
               <strong>
-                {analysisData?.targetRole}
+                {analysisData?.targetRole ||
+                  selectedJobRole?.roleName ||
+                  "your target role"}
               </strong>.
 
               Focus on improving{" "}
@@ -1078,18 +1279,20 @@ function ResumeAnalysis() {
             navigate("/resume")
           }
         >
+
           Analyze Another Resume
+
         </button>
 
 
         <button
           className="primary-action"
           onClick={() =>
-            navigate("/target-role")
+            navigate("/roadmap")
           }
         >
 
-          Continue to Target Job
+          Continue to Learning Roadmap
 
           <ArrowRight size={18} />
 
@@ -1103,6 +1306,5 @@ function ResumeAnalysis() {
   );
 
 }
-
 
 export default ResumeAnalysis;

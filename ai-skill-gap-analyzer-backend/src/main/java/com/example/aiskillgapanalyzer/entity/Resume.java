@@ -24,24 +24,35 @@ public class Resume {
 
     private String filePath;
 
+    private String targetRole;
+
+    private String location;
+
     private LocalDateTime uploadedAt;
+
 
     public Resume() {
     }
+
 
     public Resume(
             Long userId,
             String fileName,
             String fileType,
             String filePath,
+            String targetRole,
+            String location,
             LocalDateTime uploadedAt) {
 
         this.userId = userId;
         this.fileName = fileName;
         this.fileType = fileType;
         this.filePath = filePath;
+        this.targetRole = targetRole;
+        this.location = location;
         this.uploadedAt = uploadedAt;
     }
+
 
     public Long getId() {
         return id;
@@ -51,6 +62,7 @@ public class Resume {
         this.id = id;
     }
 
+
     public Long getUserId() {
         return userId;
     }
@@ -58,6 +70,7 @@ public class Resume {
     public void setUserId(Long userId) {
         this.userId = userId;
     }
+
 
     public String getFileName() {
         return fileName;
@@ -67,6 +80,7 @@ public class Resume {
         this.fileName = fileName;
     }
 
+
     public String getFileType() {
         return fileType;
     }
@@ -75,6 +89,7 @@ public class Resume {
         this.fileType = fileType;
     }
 
+
     public String getFilePath() {
         return filePath;
     }
@@ -82,6 +97,25 @@ public class Resume {
     public void setFilePath(String filePath) {
         this.filePath = filePath;
     }
+
+
+    public String getTargetRole() {
+        return targetRole;
+    }
+
+    public void setTargetRole(String targetRole) {
+        this.targetRole = targetRole;
+    }
+
+
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
 
     public LocalDateTime getUploadedAt() {
         return uploadedAt;

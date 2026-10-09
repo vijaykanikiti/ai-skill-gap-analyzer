@@ -26,16 +26,20 @@ function Sidebar({ isOpen, onClose }) {
       path: "/dashboard",
       icon: LayoutDashboard
     },
-    {
-      name: "Resume Analysis",
-      path: "/resume",
-      icon: FileText
-    },
+   
     {
       name: "Target Job",
       path: "/target-role",
       icon: Target
     },
+
+     {
+      name: "Resume Analysis",
+      path: "/resume",
+      icon: FileText
+    },
+
+    
     {
       name: "Skill Gap",
       path: "/skill-gap",
